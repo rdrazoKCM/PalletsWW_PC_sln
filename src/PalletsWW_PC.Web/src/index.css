@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+@theme {
+  --color-kc-50: #E6F0FA;
+  --color-kc-100: #CFE2F5;
+  --color-kc-200: #B8D5F0;
+  --color-kc-300: #7CB5E2;
+  --color-kc-400: #3C93CB;
+  --color-kc-500: #1A7BBB;
+  --color-kc-600: #0047AB;
+  --color-kc-700: #003D99;
+  --color-kc-800: #003366;
+  --color-kc-900: #002244;
+
+  --color-sem-ok: #16A34A;
+  --color-sem-warn: #B45309;
+  --color-sem-danger: #DC2626;
+  --color-sem-info: #0047AB;
+
+  /* Fuentes: Inter y JetBrains Mono desde Google Fonts (cargadas en index.html).
+   * Fallback completo para PCs de planta sin acceso a internet:
+   * Segoe UI es la fuente nativa de Windows 10 y es visualmente similar a Inter. */
+  --font-sans: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+  --font-mono: 'Cascadia Code', 'Consolas', ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+}
+
+/* Custom Scrollbar for Industrial High Density Grids */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* No spinners for number inputs */
+.no-spinners::-webkit-outer-spin-button,
+.no-spinners::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.no-spinners {
+  -moz-appearance: textfield;
+}
+
+/* Row Flash Animations for Pallet Operations */
+@keyframes rowPulseSuccess {
+  0% { background-color: rgba(34, 197, 94, 0.4); }
+  50% { background-color: rgba(34, 197, 94, 0.15); }
+  100% { background-color: transparent; }
+}
+
+.row-pulse-success {
+  animation: rowPulseSuccess 2.5s ease-out;
+}
+
+@keyframes rowPulseDanger {
+  0% { background-color: rgba(239, 68, 68, 0.35); }
+  50% { background-color: rgba(239, 68, 68, 0.15); }
+  100% { background-color: transparent; }
+}
+
+.row-pulse-danger {
+  animation: rowPulseDanger 2.5s ease-out;
+}
+
+/* Theme Crome Classes */
+.theme-royal-navy {
+  --chrome-bg: #0f172a;
+  --chrome-header-bg: #1e293b;
+  --chrome-border: #334155;
+  --chrome-accent: #3C93CB;
+  --chrome-text: #f8fafc;
+  --chrome-text-muted: #94a3b8;
+}
+
+.theme-kcm-deep-blue {
+  --chrome-bg: #001f3f;
+  --chrome-header-bg: #003366;
+  --chrome-border: #0047ab;
+  --chrome-accent: #3C93CB;
+  --chrome-text: #f0f7ff;
+  --chrome-text-muted: #8ec5fc;
+}
+
+.theme-kcm-cyan-pro {
+  --chrome-bg: #082f49;
+  --chrome-header-bg: #0c4a6e;
+  --chrome-border: #0284c7;
+  --chrome-accent: #38bdf8;
+  --chrome-text: #f0fdfa;
+  --chrome-text-muted: #7dd3fc;
+}
+
+.theme-kcm-sapphire-plat {
+  --chrome-bg: #1e293b;
+  --chrome-header-bg: #334155;
+  --chrome-border: #475569;
+  --chrome-accent: #60a5fa;
+  --chrome-text: #ffffff;
+  --chrome-text-muted: #cbd5e1;
+}
+
+.theme-kcm-emerald {
+  --chrome-bg: #064e3b;
+  --chrome-header-bg: #065f46;
+  --chrome-border: #059669;
+  --chrome-accent: #34d399;
+  --chrome-text: #ecfdf5;
+  --chrome-text-muted: #a7f3d0;
+}
+
+.theme-kcm-amber-sunset {
+  --chrome-bg: #451a03;
+  --chrome-header-bg: #78350f;
+  --chrome-border: #b45309;
+  --chrome-accent: #fbbf24;
+  --chrome-text: #fffbeb;
+  --chrome-text-muted: #fde68a;
+}

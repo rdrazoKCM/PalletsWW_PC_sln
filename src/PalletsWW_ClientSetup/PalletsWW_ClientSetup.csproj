@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationIcon>pallets_ww.ico</ApplicationIcon>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <AssemblyName>Setup_PalletsWW_Cliente</AssemblyName>
+    <RootNamespace>PalletsWW_ClientSetup</RootNamespace>
+    <Version>1.0.0</Version>
+    <FileVersion>1.0.0.0</FileVersion>
+    <InformationalVersion>1.0.0</InformationalVersion>
+    <Company>Kimberly-Clark de Mexico</Company>
+    <Product>Pallets Wet Wipes - Instalador Cliente</Product>
+    <Description>Instalador Todo-en-Uno del Cliente de Impresion Zebra y Accesos Directos Pallets WW</Description>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Payload\PalletsPrintBridge.exe" />
+    <EmbeddedResource Include="Payload\pallets_ww.ico" />
+  </ItemGroup>
+</Project>

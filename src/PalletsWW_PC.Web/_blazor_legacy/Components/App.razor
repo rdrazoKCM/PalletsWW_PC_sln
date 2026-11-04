@@ -1,0 +1,512 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pallets Wet Wipes - Planta Tlaxcala</title>
+    <base href="/" />
+    <link rel="stylesheet" href="bootstrap/bootstrap.min.css?v=20260925_18" />
+    <link rel="stylesheet" href="bootstrap-icons/bootstrap-icons.min.css?v=20260925_18" />
+    <link rel="stylesheet" href="app.css?v=20260925_18" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="stylesheet" href="PalletsWW_PC.Web.styles.css?v=20260925_18" />
+    <style>
+        /* =========================================================================
+           BLINDAJE CRÍTICO DE LAYOUT SIDEBAR (DEFENSA ANTI-DESPLAZAMIENTO / CACHÉ)
+           Garantiza que la barra lateral SIEMPRE esté acoplada a la izquierda (68px / 250px)
+           y NUNCA se desplace a la parte superior de la pantalla bajo ninguna circunstancia.
+           ========================================================================= */
+        .app-layout {
+            display: flex !important;
+            min-height: 100vh !important;
+            background: #f4f6f9 !important;
+            position: relative !important;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif !important;
+        }
+
+        .sidebar-container {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            bottom: 0 !important;
+            background: linear-gradient(180deg, #090e1a 0%, #0d1527 50%, #060a12 100%) !important;
+            color: #f8fafc !important;
+            z-index: 1040 !important;
+            border-right: 1px solid rgba(56, 189, 248, 0.15) !important;
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.45) !important;
+            transition: width 250ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+            overflow: hidden !important;
+        }
+
+        .sidebar-expanded {
+            width: 250px !important;
+        }
+
+        .sidebar-collapsed {
+            width: 68px !important;
+        }
+
+        .sidebar-wrapper {
+            display: flex !important;
+            flex-direction: column !important;
+            height: 100% !important;
+        }
+
+        .sidebar-header {
+            height: 64px !important;
+            padding: 0 0.85rem !important;
+            background: rgba(255, 255, 255, 0.02) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+        }
+
+        .sidebar-collapsed .sidebar-header {
+            height: auto !important;
+            padding: 0.75rem 0.25rem 0.5rem 0.25rem !important;
+        }
+
+        .brand-logo {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 40px !important;
+            height: 40px !important;
+            border-radius: 10px !important;
+            background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%) !important;
+            box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4), inset 0 1px 0 rgba(255,255,255,0.3) !important;
+            border: none !important;
+            flex-shrink: 0 !important;
+        }
+
+        .brand-logo i {
+            color: #ffffff !important;
+            font-size: 1.25rem !important;
+        }
+
+        .brand-title {
+            font-size: 1.05rem !important;
+            font-weight: 800 !important;
+            background: linear-gradient(135deg, #ffffff 40%, #93c5fd 100%) !important;
+            -webkit-background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+            letter-spacing: -0.3px !important;
+            line-height: 1.15 !important;
+        }
+
+        .brand-subtitle {
+            font-size: 0.65rem !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.8px !important;
+            color: #38bdf8 !important;
+            text-transform: uppercase !important;
+        }
+
+        .toggle-btn {
+            width: 32px !important;
+            height: 32px !important;
+            border-radius: 8px !important;
+            padding: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: rgba(255, 255, 255, 0.05) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            color: #94a3b8 !important;
+            transition: all 150ms ease !important;
+            cursor: pointer !important;
+        }
+
+        .toggle-btn:hover {
+            background: rgba(56, 189, 248, 0.15) !important;
+            border-color: rgba(56, 189, 248, 0.35) !important;
+            color: #ffffff !important;
+        }
+
+        .toggle-btn-collapsed {
+            width: 26px !important;
+            height: 26px !important;
+            font-size: 0.75rem !important;
+        }
+
+        .sidebar-nav {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 8px !important;
+            padding: 1rem 0.65rem !important;
+            flex-grow: 1 !important;
+        }
+
+        .sidebar-collapsed .sidebar-nav {
+            padding: 1rem 0.35rem !important;
+            align-items: center !important;
+        }
+
+        .nav-item-custom {
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.85rem !important;
+            padding: 0.65rem 0.85rem !important;
+            border-radius: 10px !important;
+            color: #cbd5e1 !important;
+            text-decoration: none !important;
+            font-weight: 600 !important;
+            font-size: 0.90rem !important;
+            transition: all 150ms ease !important;
+            white-space: nowrap !important;
+            position: relative !important;
+            border: 1px solid transparent !important;
+        }
+
+        .sidebar-collapsed .nav-item-custom {
+            width: 48px !important;
+            height: 48px !important;
+            padding: 0 !important;
+            justify-content: center !important;
+            border-radius: 12px !important;
+        }
+
+        .nav-icon-box {
+            width: 36px !important;
+            height: 36px !important;
+            border-radius: 8px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: rgba(255, 255, 255, 0.05) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            flex-shrink: 0 !important;
+            transition: all 150ms ease !important;
+        }
+
+        .sidebar-collapsed .nav-icon-box {
+            width: 100% !important;
+            height: 100% !important;
+            border-radius: 12px !important;
+        }
+
+        .nav-icon-box i {
+            font-size: 1.25rem !important;
+            line-height: 1 !important;
+        }
+
+        .nav-icon-captura i { color: #38bdf8 !important; }
+        .nav-icon-reportes i { color: #fbbf24 !important; }
+        .nav-icon-config i { color: #34d399 !important; }
+
+        .nav-item-custom:hover {
+            color: #ffffff !important;
+            background: rgba(255, 255, 255, 0.08) !important;
+            border-color: rgba(255, 255, 255, 0.12) !important;
+        }
+
+        .nav-item-custom.active {
+            color: #ffffff !important;
+            background: linear-gradient(90deg, #0284c7 0%, #2563eb 100%) !important;
+            border: 1px solid rgba(56, 189, 248, 0.5) !important;
+            box-shadow: 0 4px 16px rgba(2, 132, 199, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+            font-weight: 700 !important;
+        }
+
+        .sidebar-collapsed .nav-item-custom.active {
+            background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%) !important;
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+        }
+
+        .nav-item-custom.active .nav-icon-box {
+            background: rgba(255, 255, 255, 0.18) !important;
+            border-color: rgba(255, 255, 255, 0.3) !important;
+        }
+
+        .nav-item-custom.active .nav-icon-box i {
+            color: #ffffff !important;
+        }
+
+        .nav-divider {
+            height: 1px !important;
+            background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.12) 50%, transparent 100%) !important;
+            margin: 0.5rem 0.25rem !important;
+        }
+
+        .sidebar-footer {
+            padding: 0.75rem !important;
+            border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+            background: rgba(0, 0, 0, 0.2) !important;
+            margin-top: auto !important;
+        }
+
+        .footer-status-card {
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.65rem !important;
+            padding: 0.55rem 0.75rem !important;
+            border-radius: 10px !important;
+            background: rgba(15, 23, 42, 0.75) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        }
+
+        .footer-status-title {
+            color: #f8fafc !important;
+            font-weight: 700 !important;
+            font-size: 0.78rem !important;
+            line-height: 1.2 !important;
+        }
+
+        .footer-status-ver {
+            color: #38bdf8 !important;
+            font-size: 0.68rem !important;
+            font-family: monospace !important;
+            letter-spacing: -0.2px !important;
+        }
+
+        .status-indicator {
+            width: 8px !important;
+            height: 8px !important;
+            border-radius: 9999px !important;
+            background: #10b981 !important;
+            box-shadow: 0 0 10px #10b981 !important;
+            display: inline-block !important;
+            flex-shrink: 0 !important;
+        }
+
+        .main-content {
+            flex-grow: 1 !important;
+            min-height: 100vh !important;
+            background: #f4f6f9 !important;
+            transition: margin-left 250ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+            width: 100% !important;
+            overflow-x: hidden !important;
+        }
+
+        .content-expanded {
+            margin-left: 250px !important;
+        }
+
+        .content-collapsed {
+            margin-left: 68px !important;
+        }
+
+        @@media print {
+            .sidebar-container, .sidebar-wrapper { display: none !important; }
+            .main-content, .content-collapsed, .content-expanded { margin-left: 0 !important; padding: 0 !important; }
+        }
+
+        /* Estilos del Splash Screen de Carga Industrial */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle at center, #0e1e38 0%, #060b14 100%);
+            z-index: 999999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+        #splash-screen.loaded {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        .splash-logo-container {
+            position: relative;
+            margin-bottom: 24px;
+        }
+        .splash-logo {
+            width: 130px;
+            height: 130px;
+            border-radius: 28px;
+            box-shadow: 0 0 40px rgba(0, 210, 255, 0.35);
+            animation: pulse-glow 2.5s infinite ease-in-out;
+        }
+        @@keyframes pulse-glow {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 30px rgba(0, 180, 255, 0.3); }
+            50% { transform: scale(1.04); box-shadow: 0 0 55px rgba(0, 230, 255, 0.6); }
+        }
+        .splash-title {
+            font-size: 1.6rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+            background: linear-gradient(135deg, #ffffff 40%, #7dd3fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+        .splash-subtitle {
+            font-size: 0.88rem;
+            color: #94a3b8;
+            font-weight: 500;
+            margin-bottom: 28px;
+            text-align: center;
+        }
+        .splash-loader-bar {
+            width: 260px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 99px;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 16px;
+        }
+        .splash-loader-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 45%;
+            background: linear-gradient(90deg, #0284c7, #38bdf8, #818cf8);
+            border-radius: 99px;
+            animation: indeterminate 1.6s infinite ease-in-out;
+        }
+        @@keyframes indeterminate {
+            0% { left: -45%; width: 45%; }
+            50% { width: 65%; }
+            100% { left: 100%; width: 45%; }
+        }
+        .splash-status-text {
+            font-size: 0.82rem;
+            color: #38bdf8;
+            font-family: 'Consolas', monospace;
+            font-weight: 500;
+            text-align: center;
+            max-width: 80%;
+        }
+        .splash-retry-btn {
+            display: none;
+            margin-top: 16px;
+            padding: 8px 20px;
+            background: #0284c7;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        .splash-retry-btn:hover {
+            background: #0369a1;
+        }
+
+        /* Estilo industrial para el aviso de reconexión de Blazor (evitar barra gris de error estática) */
+        #components-reconnect-modal {
+            background: rgba(14, 30, 56, 0.88) !important;
+            backdrop-filter: blur(6px);
+            color: #ffffff !important;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+    </style>
+    <HeadOutlet @rendermode="InteractiveServer" />
+    <script src="js/zebra-print.js?v=20261004_1"></script>
+</head>
+<body>
+    <!-- Splash Screen Inicial de Carga y Conexión -->
+    <div id="splash-screen">
+        <div class="splash-logo-container">
+            <img src="img/pallets_ww_logo.png" alt="Pallets WW" class="splash-logo" />
+        </div>
+        <div class="splash-title">Pallets Wet Wipes</div>
+        <div class="splash-subtitle">Kimberly-Clark de México • Planta Tlaxcala</div>
+        <div class="splash-loader-bar">
+            <div class="splash-loader-fill"></div>
+        </div>
+        <div id="splash-status" class="splash-status-text">Conectando con Servidor Central...</div>
+        <button id="splash-retry" class="splash-retry-btn" onclick="location.reload()">Reintentar Conexión</button>
+    </div>
+
+    <Routes @rendermode="InteractiveServer" />
+    <script src="_framework/blazor.web.js"></script>
+    <script>
+        // Ocultar splash screen cuando Blazor termine de inicializar
+        window.addEventListener('DOMContentLoaded', () => {
+            const checkBlazorReady = setInterval(() => {
+                const appRoot = document.querySelector('.main-layout') || document.querySelector('.app-container') || document.querySelector('main');
+                if (appRoot) {
+                    clearInterval(checkBlazorReady);
+                    const splash = document.getElementById('splash-screen');
+                    if (splash) {
+                        splash.classList.add('loaded');
+                        setTimeout(() => splash.remove(), 600);
+                    }
+                }
+            }, 100);
+
+            // Temporizador de seguridad inicial: si tras 12s no carga, dar aviso y botón de reintento
+            setTimeout(() => {
+                const splash = document.getElementById('splash-screen');
+                if (splash && !splash.classList.contains('loaded')) {
+                    const statusText = document.getElementById('splash-status');
+                    const retryBtn = document.getElementById('splash-retry');
+                    if (statusText) {
+                        statusText.innerText = "La conexión al servidor (" + (window.location.hostname || "10.26.24.31") + ") está tardando más de lo habitual. Verifique el cable de red.";
+                        statusText.style.color = "#f59e0b";
+                    }
+                    if (retryBtn) {
+                        retryBtn.style.display = "block";
+                    }
+                }
+            }, 12000);
+        });
+
+        // =========================================================================
+        // WATCHDOG INDUSTRIAL DE AUTO-RECONEXIÓN Y PREVENCIÓN DE CONGELAMIENTO
+        // =========================================================================
+        (() => {
+            setInterval(() => {
+                fetch('/api/health', { cache: 'no-store' }).catch(() => {});
+            }, 20000);
+
+            let reconnectFails = 0;
+            setInterval(() => {
+                const modal = document.getElementById('components-reconnect-modal');
+                if (modal) {
+                    const style = window.getComputedStyle(modal);
+                    const isVisible = style.display !== 'none' && style.visibility !== 'hidden';
+                    if (isVisible) {
+                        const text = modal.innerText || '';
+                        const isFailed = modal.classList.contains('components-reconnect-failed') ||
+                                         modal.classList.contains('components-reconnect-rejected') ||
+                                         text.includes('Could not reconnect') ||
+                                         text.includes('Reload') ||
+                                         text.includes('recargar');
+
+                        if (isFailed) {
+                            console.warn('[Watchdog] Reconexión fallida tras inactividad. Restaurando sesión automáticamente...');
+                            location.reload();
+                        } else {
+                            reconnectFails++;
+                            if (reconnectFails >= 4) {
+                                console.warn('[Watchdog] Tiempo límite de reconexión superado. Refrescando aplicación...');
+                                location.reload();
+                            }
+                        }
+                    } else {
+                        reconnectFails = 0;
+                    }
+                }
+            }, 2000);
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    fetch('/api/health', { cache: 'no-store' }).then(() => {
+                        const modal = document.getElementById('components-reconnect-modal');
+                        if (modal && window.getComputedStyle(modal).display !== 'none') {
+                            location.reload();
+                        }
+                    }).catch(() => {});
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

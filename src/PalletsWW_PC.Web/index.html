@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#003366" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    <title>Pallets Wipes - Kimberly-Clark de México</title>
+  </head>
+  <body class="bg-slate-100 text-slate-800 font-sans antialiased select-none overflow-x-hidden">
+    <div id="root">
+      <!-- Fallback corporativo anti-pantalla en blanco mientras React monta en memoria -->
+      <div style="min-height: 100vh; background-color: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        <div style="width: 44px; height: 44px; border: 3px solid rgba(60,147,203,0.2); border-top-color: #3C93CB; border-radius: 50%; animation: spin 0.9s linear infinite; margin-bottom: 16px;"></div>
+        <div style="font-size: 16px; font-weight: 600; letter-spacing: 0.05em; color: #e2e8f0;">Pallets Wipes PC</div>
+        <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Kimberly-Clark Planta Tlaxcala - Depto Wipes</div>
+      </div>
+      <style>
+        @keyframes spin { to { transform: rotate(360deg); } }
+      </style>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

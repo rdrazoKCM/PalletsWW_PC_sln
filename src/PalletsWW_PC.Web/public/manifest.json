@@ -1,0 +1,28 @@
+{
+  "name": "Pallets Wipes - Kimberly-Clark de México",
+  "short_name": "Pallets Wipes PC",
+  "description": "Sistema Oficial de Captura y Registro de Pallets para Planta Tlaxcala - Departamento Wipes",
+  "id": "KCM.PalletsWW",
+  "start_url": "/#/",
+  "display": "standalone",
+  "background_color": "#003366",
+  "theme_color": "#0047AB",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "16x16 32x32 48x48 64x64 128x128 256x256",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

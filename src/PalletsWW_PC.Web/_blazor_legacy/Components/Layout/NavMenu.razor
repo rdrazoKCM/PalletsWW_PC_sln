@@ -1,0 +1,152 @@
+﻿@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+@code {
+    [Parameter] public bool IsCollapsed { get; set; }
+    [Parameter] public EventCallback OnToggleCollapse { get; set; }
+
+    private int _savedMachineId = 0;
+
+    protected override void OnInitialized()
+    {
+        UpdateMachineIdFromUri();
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _savedMachineId <= 0)
+        {
+            try
+            {
+                var val = await JS.InvokeAsync<string>("eval", @"(function() {
+                    var m = document.cookie.match(/(?:^|;\s*)PalletsWW_Maquina=([^;]+)/);
+                    if (m && parseInt(m[1]) > 0) return m[1];
+                    return localStorage.getItem('PalletsWW_MaquinaId') || localStorage.getItem('pallets_ww_maquina') || '';
+                })()");
+
+                if (int.TryParse(val, out int mId) && mId > 0)
+                {
+                    _savedMachineId = mId;
+                    StateHasChanged();
+                }
+            }
+            catch { }
+        }
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        UpdateMachineIdFromUri();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void UpdateMachineIdFromUri()
+    {
+        try
+        {
+            var uri = new Uri(Navigation.Uri);
+            var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+            var m = query["maquina"];
+            if (!string.IsNullOrEmpty(m) && int.TryParse(m, out int mId) && mId > 0)
+            {
+                _savedMachineId = mId;
+            }
+        }
+        catch { }
+    }
+
+    private string GetCapturaUrl() => _savedMachineId > 0 ? $"/?maquina={_savedMachineId}" : "/";
+    private string GetReportesUrl() => _savedMachineId > 0 ? $"reportes?maquina={_savedMachineId}" : "reportes";
+    private string GetConfigUrl() => _savedMachineId > 0 ? $"configuracion?maquina={_savedMachineId}" : "configuracion";
+}
+
+<div class="sidebar-wrapper @(IsCollapsed ? "collapsed" : "expanded")">
+    <!-- CABECERA SIDEBAR -->
+    <div class="sidebar-header d-flex align-items-center justify-content-between">
+        @if (!IsCollapsed)
+        {
+            <div class="d-flex align-items-center gap-2 overflow-hidden brand-info-group">
+                <div class="brand-logo">
+                    <i class="bi bi-box-seam-fill"></i>
+                </div>
+                <div class="d-flex flex-column text-truncate">
+                    <span class="brand-title">Pallets WW</span>
+                    <span class="brand-subtitle">PLANTA TLAXCALA</span>
+                </div>
+            </div>
+            <button class="btn toggle-btn" title="Colapsar menú" @onclick="OnToggleCollapse">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+        }
+        else
+        {
+            <div class="d-flex flex-column align-items-center w-100 gap-2 py-1">
+                <div class="brand-logo" title="Pallets WW - Planta Tlaxcala">
+                    <i class="bi bi-box-seam-fill"></i>
+                </div>
+                <button class="btn toggle-btn toggle-btn-collapsed" title="Expandir menú" @onclick="OnToggleCollapse">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+            </div>
+        }
+    </div>
+
+    <!-- NAVEGACIÓN PRINCIPAL -->
+    <nav class="sidebar-nav">
+        <!-- CAPTURA DE PALLETS -->
+        <NavLink class="nav-item-custom" href="@GetCapturaUrl()" Match="NavLinkMatch.Prefix" title="Captura de Pallets">
+            <div class="nav-icon-box nav-icon-captura">
+                <i class="bi bi-boxes"></i>
+            </div>
+            @if (!IsCollapsed)
+            {
+                <span class="nav-label">Captura de Pallets</span>
+            }
+        </NavLink>
+
+        <!-- REPORTES -->
+        <NavLink class="nav-item-custom" href="@GetReportesUrl()" Match="NavLinkMatch.Prefix" title="Reportes de Producción">
+            <div class="nav-icon-box nav-icon-reportes">
+                <i class="bi bi-bar-chart-fill"></i>
+            </div>
+            @if (!IsCollapsed)
+            {
+                <span class="nav-label">Reportes</span>
+            }
+        </NavLink>
+
+        <div class="nav-divider"></div>
+
+        <!-- CONFIGURACIÓN TERMINAL -->
+        <NavLink class="nav-item-custom" href="@GetConfigUrl()" Match="NavLinkMatch.Prefix" title="Configuración de Terminal">
+            <div class="nav-icon-box nav-icon-config">
+                <i class="bi bi-gear-fill"></i>
+            </div>
+            @if (!IsCollapsed)
+            {
+                <span class="nav-label">Configuración</span>
+            }
+        </NavLink>
+    </nav>
+
+    <!-- PIE DEL SIDEBAR ELEGANTE -->
+    <div class="sidebar-footer mt-auto">
+        @if (!IsCollapsed)
+        {
+            <div class="footer-status-card">
+                <span class="status-indicator"></span>
+                <div class="d-flex flex-column">
+                    <span class="footer-status-title">Terminal Activa</span>
+                    <span class="footer-status-ver">v6.0 Web .NET 8</span>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-2 w-100" title="Terminal Activa - v6.0 Web">
+                <span class="status-indicator mx-auto"></span>
+            </div>
+        }
+    </div>
+</div>

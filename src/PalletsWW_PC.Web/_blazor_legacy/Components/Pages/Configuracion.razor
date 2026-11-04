@@ -1,0 +1,1024 @@
+﻿@page "/configuracion"
+@rendermode InteractiveServer
+@using PalletsWW_PC.Web.Models.Dtos
+@inject CatalogCacheService CacheService
+@inject CatalogosApiService CatalogosService
+@inject ImpresionApiService ImpresionService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>Configuración de Terminal - Pallets WW</PageTitle>
+
+<div class="container-fluid px-2 px-md-4 py-3">
+
+    <!-- PANEL DE VALIDACION DE CONTRASEÑA (SI NO ESTA AUTORIZADO) -->
+    @if (!_accesoAutorizado)
+    {
+        <div class="row justify-content-center py-5">
+            <div class="col-12 col-md-6 col-lg-5 col-xl-4">
+                <div class="card shadow-lg border-0 rounded-4 overflow-hidden" style="background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(12px);">
+                    <div class="card-header text-white p-4 text-center border-0" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
+                        <div class="d-inline-flex p-3 rounded-circle bg-warning bg-opacity-15 text-warning mb-2 border border-warning border-opacity-25 shadow-sm">
+                            <i class="bi bi-shield-lock-fill fs-1"></i>
+                        </div>
+                        <h4 class="fw-bold mb-1" style="letter-spacing: -0.5px;">Acceso Restringido</h4>
+                        <p class="small text-muted mb-0">Módulo exclusivo para Supervisores y Sistemas</p>
+                    </div>
+
+                    <div class="card-body p-4">
+                        <div class="alert alert-warning small d-flex align-items-center gap-2 mb-4 py-2 border-warning border-opacity-50">
+                            <i class="bi bi-exclamation-triangle-fill fs-5 text-warning flex-shrink-0"></i>
+                            <span>Los operadores de línea no tienen autorización para modificar la máquina ni la configuración de hardware.</span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-secondary">
+                                <i class="bi bi-key-fill text-primary me-1"></i>Contraseña de Seguridad:
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-secondary border-end-0">
+                                    <i class="bi bi-lock-fill"></i>
+                                </span>
+                                <input type="@(_mostrarPassword ? "text" : "password")" 
+                                       class="form-control border-start-0 border-end-0 @(_passwordError ? "is-invalid border-danger" : "")" 
+                                       placeholder="Ingrese contraseña" 
+                                       @bind="_passwordInput" @bind:event="oninput" 
+                                       @onkeydown="OnPasswordKeyDown" 
+                                       autofocus />
+                                <button class="btn btn-outline-secondary border-start-0" type="button" @onclick="() => _mostrarPassword = !_mostrarPassword" title="@(_mostrarPassword ? "Ocultar" : "Mostrar")">
+                                    <i class="bi @(_mostrarPassword ? "bi-eye-slash-fill" : "bi-eye-fill")"></i>
+                                </button>
+                            </div>
+                            @if (_passwordError)
+                            {
+                                <div class="text-danger small mt-2 fw-semibold d-flex align-items-center gap-1">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                    <span>Contraseña incorrecta. Acceso denegado.</span>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="d-flex align-items-center justify-content-between gap-2 mt-4 pt-2">
+                            <a href="/" class="btn btn-outline-secondary d-flex align-items-center gap-1">
+                                <i class="bi bi-arrow-left"></i>
+                                <span>Volver a Captura</span>
+                            </a>
+                            <button class="btn btn-primary fw-bold px-4 shadow-sm d-flex align-items-center gap-1" @onclick="VerificarPassword">
+                                <i class="bi bi-unlock-fill"></i>
+                                <span>Desbloquear</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- CABECERA DE CONFIGURACIÓN DESBLOQUEADA -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+            <div class="d-flex align-items-center gap-3">
+                <h3 class="mb-0 fw-bold text-primary d-flex align-items-center gap-2" style="letter-spacing: -0.5px;">
+                    <i class="bi bi-gear-wide-connected text-success"></i>
+                    <span>Configuración de Terminal</span>
+                </h3>
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1">
+                    <i class="bi bi-geo-alt-fill me-1"></i>Planta Tlaxcala - Depto 3 Wet Wipes
+                </span>
+                @if (_impresoraConectada)
+                {
+                    <span class="badge @(_modoImpresion == "Red" ? "bg-info bg-opacity-10 text-primary border border-info border-opacity-25" : "bg-success bg-opacity-10 text-success border border-success border-opacity-25") px-2 py-1" title="@_impresoraMensaje">
+                        <i class="bi @(_modoImpresion == "Red" ? "bi-hdd-network-fill text-info" : "bi-usb-symbol text-success") me-1"></i>
+                        @(_modoImpresion == "Red" ? $"Zebra Red: {_printerIp} Lista" : $"Impresora {_impresoraNombre} Lista")
+                    </span>
+                }
+                else
+                {
+                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1" title="@_impresoraMensaje">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>Impresora Desconectada
+                    </span>
+                }
+            </div>
+
+            <div class="d-flex align-items-center gap-2 mt-2 mt-md-0">
+                <button class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1 shadow-sm fw-semibold" @onclick="BloquearConfiguracion" title="Cerrar sesión de configuración">
+                    <i class="bi bi-lock-fill"></i>
+                    <span>Bloquear Menú</span>
+                </button>
+                <a href="/" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-sm fw-semibold">
+                    <i class="bi bi-arrow-left"></i>
+                    <span>Volver a Captura</span>
+                </a>
+                <button class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1 shadow-sm fw-semibold" @onclick="CargarDatosAsync">
+                    <i class="bi bi-arrow-clockwise"></i>
+                    <span>Refrescar</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- ALERTAS Y MENSAJES -->
+        @if (!string.IsNullOrEmpty(_alertaMensaje))
+        {
+            <div class="alert alert-@_alertaTipo alert-dismissible fade show shadow-sm d-flex align-items-center gap-2 mb-3" role="alert">
+                <i class="bi @(_alertaTipo == "success" ? "bi-check-circle-fill" : (_alertaTipo == "danger" ? "bi-x-octagon-fill" : "bi-info-circle-fill")) fs-5"></i>
+                <div class="flex-grow-1">@_alertaMensaje</div>
+                <button type="button" class="btn-close" @onclick="() => _alertaMensaje = string.Empty"></button>
+            </div>
+        }
+
+        <div class="row g-3">
+            <!-- COLUMNA IZQUIERDA: ASIGNACIÓN DE MÁQUINA DE WET WIPES -->
+            <div class="col-12 col-lg-7">
+                <div class="card shadow-sm border-0 mb-3" style="border-radius: 12px; background: rgba(255, 255, 255, 0.95);">
+                    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                                <i class="bi bi-cpu-fill text-primary"></i>
+                                <span>Máquina de Producción Asignada a esta PC</span>
+                            </h5>
+                            <span class="small text-muted">Seleccione la línea física en la que está instalada esta computadora</span>
+                        </div>
+                        <span class="badge bg-dark font-monospace fs-6 px-3 py-2">
+                            ID Actual: @_maquinaSeleccionada
+                        </span>
+                    </div>
+
+                    <div class="card-body p-3">
+                        <div class="row g-2 mb-3">
+                            @foreach (var m in _maquinasConDetalle)
+                            {
+                                bool isSelected = _maquinaSeleccionada == m.NoMaquina;
+                                <div class="col-6 col-md-4 col-xl-3">
+                                    <button type="button" 
+                                            class="btn w-100 p-3 text-start border rounded-3 transition-all d-flex flex-column justify-content-between @(isSelected ? "btn-primary shadow text-white border-primary" : "btn-light text-dark bg-white shadow-sm hover-border-primary")" 
+                                            style="min-height: 95px;"
+                                            @onclick="() => SeleccionarMaquina(m.NoMaquina)">
+                                        <div class="d-flex justify-content-between align-items-center w-100 mb-2">
+                                            <span class="badge @(isSelected ? "bg-white text-primary" : "bg-primary text-white") font-monospace">
+                                                ID @m.NoMaquina
+                                            </span>
+                                            @if (isSelected)
+                                            {
+                                                <i class="bi bi-check-circle-fill fs-5"></i>
+                                            }
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold @(isSelected ? "text-white" : "text-dark")">@m.NombreLinea</div>
+                                            <div class="small @(isSelected ? "text-white-50" : "text-muted") font-monospace">@m.NombreBD</div>
+                                        </div>
+                                    </button>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="d-flex flex-wrap align-items-center justify-content-between p-3 bg-light rounded-3 border gap-2">
+                            <div>
+                                <span class="small text-muted d-block">Almacenamiento y Sincronización:</span>
+                                <strong class="text-success"><i class="bi bi-shield-check me-1"></i>Enrolamiento Local (Navegador + Servicio Zebra)</strong>
+                                <div class="text-muted small">Cambio instantáneo en menos de 5 segundos sin reiniciar la PC.</div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <a href="@UrlVolver" class="btn btn-outline-secondary">Volver</a>
+                                <button class="btn btn-success fw-bold px-4 py-2 shadow-sm d-flex align-items-center gap-2 fs-6" 
+                                        @onclick="GuardarMaquinaAsync" disabled="@_guardando">
+                                    <i class="bi @(_guardando ? "bi-hourglass-split" : "bi-check2-circle")"></i>
+                                    <span>@(_guardando ? "Aplicando Cambio..." : "Guardar y Asignar Máquina")</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TARJETA CAMBIO DE SERVIDOR CENTRAL DE LA APLICACIÓN -->
+                <div class="card shadow-sm border-0 mb-3" style="border-radius: 12px; background: rgba(255, 255, 255, 0.95);">
+                    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                                <i class="bi bi-hdd-rack-fill text-primary"></i>
+                                <span>Servidor Central de la Aplicación</span>
+                            </h6>
+                            <span class="small text-muted">Configure la dirección IP o nombre del servidor que aloja el sistema</span>
+                        </div>
+                        <span class="badge bg-warning text-dark font-monospace px-3 py-1">
+                            Puerto 5106
+                        </span>
+                    </div>
+
+                    <div class="card-body p-3">
+                        <div class="alert alert-light border small mb-3 text-secondary d-flex align-items-center gap-2">
+                            <i class="bi bi-info-circle-fill text-primary fs-5 flex-shrink-0"></i>
+                            <div>
+                                Si soporte o mantenimiento cambia la computadora servidora, ingrese la nueva IP aquí (ej. <strong>10.26.24.31</strong>). 
+                                <strong>El acceso directo de Windows en el Escritorio se actualizará automáticamente</strong> y la sesión se redirigirá de inmediato.
+                            </div>
+                        </div>
+
+                        <div class="row g-2 align-items-end">
+                            <div class="col-12 col-md-7">
+                                <label class="form-label small fw-bold text-secondary mb-1">
+                                    Dirección IP o Nombre del Servidor:
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-secondary font-monospace">http://</span>
+                                    <input type="text" class="form-control font-monospace fw-bold" 
+                                           placeholder="10.26.24.31" 
+                                           @bind="_servidorIpInput" />
+                                    <span class="input-group-text bg-light text-secondary font-monospace">:5106/</span>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-5">
+                                <button class="btn btn-warning text-dark fw-bold w-100 shadow-sm d-flex align-items-center justify-content-center gap-2 py-2" 
+                                        @onclick="GuardarServidorAsync" disabled="@_guardandoServidor">
+                                    <i class="bi @(_guardandoServidor ? "bi-hourglass-split" : "bi-arrow-repeat")"></i>
+                                    <span>@(_guardandoServidor ? "Actualizando..." : "Guardar y Reconectar")</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COLUMNA DERECHA: CONFIGURACIÓN DE IMPRESIÓN Y HARDWARE -->
+            <div class="col-12 col-lg-5">
+                <!-- TARJETA ESTADO DE LA IMPRESORA ZEBRA (DUAL MODE: USB / RED) -->
+                <div class="card shadow-sm border-0 mb-3" style="border-radius: 12px; background: rgba(255, 255, 255, 0.95);">
+                    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                            <i class="bi bi-printer-fill text-primary"></i>
+                            <span>Hardware de Impresión (Zebra USB / Red IP LAN)</span>
+                        </h6>
+                        <span class="badge @(_modoImpresion == "Red" ? "bg-info text-dark" : "bg-primary") fw-semibold" style="font-size: 0.75rem;">
+                            @(_modoImpresion == "Red" ? "Modo Red LAN" : "Modo USB Local")
+                        </span>
+                    </div>
+                    <div class="card-body p-3">
+                        <!-- BANNER DE ESTADO ACTUAL -->
+                        <div class="p-3 rounded-3 mb-3 border @(_impresoraEnPausa ? "bg-warning bg-opacity-15 border-warning" : (_impresoraConectada ? "bg-success bg-opacity-10 border-success border-opacity-25" : "bg-danger bg-opacity-10 border-danger border-opacity-25"))">
+                            <div class="d-flex align-items-center gap-3">
+                                <i class="bi @(_impresoraEnPausa ? "bi-pause-circle-fill text-warning" : (_impresoraConectada ? (_modoImpresion == "Red" ? "bi-hdd-network-fill text-info" : "bi-check-circle-fill text-success") : "bi-exclamation-triangle-fill text-danger")) fs-1"></i>
+                                <div>
+                                    <div class="fw-bold @(_impresoraEnPausa ? "text-warning text-dark" : (_impresoraConectada ? "text-success" : "text-danger"))">
+                                        @if (_impresoraEnPausa)
+                                        {
+                                            <span>âš ï¸ Impresora en PAUSA en Windows</span>
+                                        }
+                                        else if (_impresoraConectada)
+                                        {
+                                            <span>@(_modoImpresion == "Red" ? "Impresora Zebra de Red en Línea" : "Impresora USB Lista para Trabajar")</span>
+                                        }
+                                        else
+                                        {
+                                            <span>Impresora No Detectada</span>
+                                        }
+                                    </div>
+                                    <div class="small text-muted">@_impresoraMensaje</div>
+                                    @if (_modoImpresion == "Red" && !string.IsNullOrEmpty(_printerIp))
+                                    {
+                                        <div class="small fw-semibold text-dark mt-1 font-monospace">
+                                            <i class="bi bi-ethernet text-primary me-1"></i>Destino Socket: @_printerIp : @_printerPort
+                                        </div>
+                                    }
+                                    else if (!string.IsNullOrEmpty(_impresoraNombre))
+                                    {
+                                        <div class="small fw-semibold text-dark mt-1 font-monospace">Dispositivo: @_impresoraNombre</div>
+                                    }
+                                    @if (_trabajosEnCola > 0)
+                                    {
+                                        <div class="small fw-bold text-danger mt-1"><i class="bi bi-layers-fill me-1"></i>Trabajos acumulados en cola: @_trabajosEnCola</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ACCIONES RÁPIDAS SPOOLER (SI APLICA EN MODO USB) -->
+                        @if (_impresoraEnPausa || _trabajosEnCola > 0)
+                        {
+                            <div class="d-flex gap-2 mb-3">
+                                @if (_impresoraEnPausa)
+                                {
+                                    <button class="btn btn-warning btn-sm text-dark fw-bold flex-fill d-flex align-items-center justify-content-center gap-1 shadow-sm"
+                                            @onclick="DespausarImpresoraAsync" disabled="@_despausando">
+                                        <i class="bi @(_despausando ? "bi-hourglass-split" : "bi-play-circle-fill")"></i>
+                                        <span>@(_despausando ? "Despausando..." : "Despausar Impresora")</span>
+                                    </button>
+                                }
+                                <button class="btn btn-outline-danger btn-sm fw-bold flex-fill d-flex align-items-center justify-content-center gap-1 shadow-sm"
+                                        @onclick="PurgarColaImpresionAsync" disabled="@_purgandoCola">
+                                    <i class="bi @(_purgandoCola ? "bi-hourglass-split" : "bi-trash3-fill")"></i>
+                                    <span>@(_purgandoCola ? "Purgando..." : "Limpiar Cola Spooler")</span>
+                                </button>
+                            </div>
+                        }
+
+                        <!-- SELECTOR DE TIPO DE CONEXIÓN (USB vs RED) -->
+                        <div class="mb-3 p-3 bg-light rounded-3 border">
+                            <label class="form-label small fw-bold text-dark mb-2 d-flex align-items-center gap-1">
+                                <i class="bi bi-toggles text-primary"></i>Tipo de Conexión de la Impresora Zebra:
+                            </label>
+                            <div class="d-flex gap-2 mb-3">
+                                <button type="button" class="btn btn-sm flex-fill fw-bold @(_modoImpresion == "USB" ? "btn-primary shadow-sm" : "btn-outline-secondary bg-white")"
+                                        @onclick='() => CambiarModoImpresion("USB")'>
+                                    <i class="bi bi-usb-symbol me-1"></i>Cable USB Local
+                                </button>
+                                <button type="button" class="btn btn-sm flex-fill fw-bold @(_modoImpresion == "Red" ? "btn-primary shadow-sm" : "btn-outline-secondary bg-white")"
+                                        @onclick='() => CambiarModoImpresion("Red")'>
+                                    <i class="bi bi-hdd-network-fill me-1"></i>Red Ethernet LAN (IP Fija)
+                                </button>
+                            </div>
+
+                            @if (_modoImpresion == "USB")
+                            {
+                                <!-- PANEL MODO USB -->
+                                @if (_listaImpresoras != null && _listaImpresoras.Count > 0)
+                                {
+                                    <div class="mb-2">
+                                        <label class="form-label small fw-semibold text-secondary mb-1">
+                                            Controlador / Cola de Impresión en Windows:
+                                        </label>
+                                        <div class="input-group input-group-sm">
+                                            <select class="form-select form-select-sm fw-semibold" @bind="_impresoraSeleccionada">
+                                                @foreach (var p in _listaImpresoras)
+                                                {
+                                                    <option value="@p">@p</option>
+                                                }
+                                            </select>
+                                            <button class="btn btn-outline-primary btn-sm fw-semibold" @onclick="GuardarImpresoraSeleccionadaAsync" disabled="@_guardandoImpresora">
+                                                <i class="bi bi-check2-circle me-1"></i>@(_guardandoImpresora ? "..." : "Asignar USB")
+                                            </button>
+                                        </div>
+                                        <div class="form-text small" style="font-size: 0.75rem;">
+                                            Driver de Windows asignado (ej. Generic / Text Only, ZDesigner).
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="text-muted small">
+                                        <i class="bi bi-info-circle me-1"></i>Buscando impresoras USB locales...
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <!-- PANEL MODO RED ETHERNET LAN -->
+                                <div>
+                                    <div class="row g-2 mb-2">
+                                        <div class="col-8">
+                                            <label class="form-label small fw-semibold text-secondary mb-1">Dirección IP Impresora:</label>
+                                            <input type="text" class="form-control form-control-sm font-monospace fw-bold" 
+                                                   placeholder="10.26.24.xxx" @bind="_printerIp" />
+                                        </div>
+                                        <div class="col-4">
+                                            <label class="form-label small fw-semibold text-secondary mb-1">Puerto Socket:</label>
+                                            <input type="number" class="form-control form-control-sm font-monospace fw-bold" 
+                                                   placeholder="9100" @bind="_printerPort" />
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex gap-2 mb-2">
+                                        <button class="btn btn-outline-info btn-sm fw-semibold flex-fill d-flex align-items-center justify-content-center gap-1"
+                                                @onclick="ProbarConexionRedAsync" disabled="@_probandoRed">
+                                            <i class="bi @(_probandoRed ? "bi-hourglass-split" : "bi-broadcast")"></i>
+                                            <span>@(_probandoRed ? "Probando..." : "Probar Socket 9100")</span>
+                                        </button>
+                                        <button class="btn btn-success btn-sm fw-bold flex-fill d-flex align-items-center justify-content-center gap-1 shadow-sm"
+                                                @onclick="GuardarConfiguracionRedAsync" disabled="@_guardandoHardware">
+                                            <i class="bi @(_guardandoHardware ? "bi-hourglass-split" : "bi-check2-circle")"></i>
+                                            <span>@(_guardandoHardware ? "Guardando..." : "Guardar Modo Red")</span>
+                                        </button>
+                                    </div>
+
+                                    @if (!string.IsNullOrEmpty(_resultadoPruebaRed))
+                                    {
+                                        <div class="small fw-semibold mt-1 p-2 rounded @(_resultadoPruebaRedOk ? "bg-success bg-opacity-10 text-success border border-success border-opacity-25" : "bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25")">
+                                            <i class="bi @(_resultadoPruebaRedOk ? "bi-check-circle-fill" : "bi-x-circle-fill") me-1"></i>
+                                            @_resultadoPruebaRed
+                                        </div>
+                                    }
+
+                                    <div class="form-text small mt-1" style="font-size: 0.75rem;">
+                                        Envío directo por socket TCP RAW a puerto 9100. Ideal para impresoras compartidas (ej. Máquina 4 y 6).
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- BOTONES DE DIAGNÓSTICO -->
+                        <div class="d-flex flex-wrap gap-2">
+                            <button class="btn btn-outline-primary btn-sm fw-semibold d-flex align-items-center gap-1" 
+                                    @onclick="EnviarPruebaImpresionAsync" disabled="@_enviandoPrueba">
+                                <i class="bi @(_enviandoPrueba ? "bi-hourglass-split" : "bi-tag-fill")"></i>
+                                <span>@(_enviandoPrueba ? "Enviando..." : "Imprimir Etiqueta de Prueba")</span>
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm fw-semibold d-flex align-items-center gap-1" 
+                                    @onclick="VerificarImpresoraAsync">
+                                <i class="bi bi-arrow-repeat"></i>
+                                <span>Verificar Estado</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TARJETA INFORMACIÓN DEL SISTEMA -->
+                <div class="card shadow-sm border-0" style="border-radius: 12px; background: rgba(255, 255, 255, 0.95);">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h6 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                            <i class="bi bi-hdd-network-fill text-info"></i>
+                            <span>Información del Sistema</span>
+                        </h6>
+                    </div>
+                    <div class="card-body p-3">
+                        <ul class="list-group list-group-flush small">
+                            <li class="list-group-item px-0 py-2 d-flex justify-content-between">
+                                <span class="text-secondary">Base de Datos Pallets:</span>
+                                <span class="fw-bold text-primary font-monospace">TLX022MXDB</span>
+                            </li>
+                            <li class="list-group-item px-0 py-2 d-flex justify-content-between">
+                                <span class="text-secondary">Base de Datos Catálogos:</span>
+                                <span class="fw-bold text-primary font-monospace">TLX040MXDB</span>
+                            </li>
+                            <li class="list-group-item px-0 py-2 d-flex justify-content-between">
+                                <span class="text-secondary">Procedimientos Almacenados:</span>
+                                <span class="badge bg-success">Versión V8 Optimizada</span>
+                            </li>
+                            <li class="list-group-item px-0 py-2 d-flex justify-content-between">
+                                <span class="text-secondary">Enrolamiento de Terminal:</span>
+                                <span class="badge bg-primary">Doble Candado (Navegador + Servicio Zebra)</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    // Control de Acceso por Contraseña
+    private bool _accesoAutorizado = false;
+    private string _passwordInput = "";
+    private bool _passwordError = false;
+    private bool _mostrarPassword = false;
+    private const string PASSWORD_MAESTRO = "w0rdP@$$";
+
+    private record MaquinaDetalle(int NoMaquina, string NombreBD, string NombreLinea);
+    private List<MaquinaDetalle> _maquinasConDetalle = new();
+
+    private int _maquinaSeleccionada = 0;
+    private string UrlVolver => _maquinaSeleccionada > 0 ? $"/?maquina={_maquinaSeleccionada}" : "/";
+    private bool _guardando = false;
+    private bool _enviandoPrueba = false;
+    private string _alertaMensaje = "";
+    private string _alertaTipo = "info";
+
+    // Servidor Central
+    private string _servidorIpInput = "10.26.24.31";
+    private bool _guardandoServidor = false;
+
+    // Estado Impresora y Hardware (Dual Mode)
+    private bool _impresoraConectada = false;
+    private string _impresoraNombre = "";
+    private string _impresoraMensaje = "Verificando...";
+    private bool _impresoraEnPausa = false;
+    private uint _trabajosEnCola = 0;
+    private bool _purgandoCola = false;
+    private bool _despausando = false;
+    private List<string> _listaImpresoras = new();
+    private string _impresoraSeleccionada = "";
+    private bool _guardandoImpresora = false;
+
+    // Hardware de Red
+    private string _modoImpresion = "USB"; // "USB" o "Red"
+    private string _printerIp = "";
+    private int _printerPort = 9100;
+    private bool _probandoRed = false;
+    private string _resultadoPruebaRed = "";
+    private bool _resultadoPruebaRedOk = false;
+    private bool _guardandoHardware = false;
+
+    public record MachineConfigResult(int MachineId, string MachineName, string ServerIp);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatosAsync();
+    }
+
+    private void VerificarPassword()
+    {
+        if (_passwordInput == PASSWORD_MAESTRO)
+        {
+            _accesoAutorizado = true;
+            _passwordError = false;
+            _passwordInput = "";
+        }
+        else
+        {
+            _passwordError = true;
+        }
+    }
+
+    private void OnPasswordKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            VerificarPassword();
+        }
+    }
+
+    private void BloquearConfiguracion()
+    {
+        _accesoAutorizado = false;
+        _passwordInput = "";
+        _passwordError = false;
+    }
+
+    private async Task CargarDatosAsync()
+    {
+        try
+        {
+            // 1. Cargar máquinas dinámicas directamente desde SQL Server
+            try
+            {
+                var maquinasDb = await CacheService.ObtenerMaquinasAsync(forzarRefresco: true);
+                if (maquinasDb != null && maquinasDb.Any())
+                {
+                    _maquinasConDetalle = maquinasDb.Select(m => {
+                        string nom = m.NombreMaquina?.Trim() ?? "";
+                        string lineaName = nom.StartsWith("TXWW", StringComparison.OrdinalIgnoreCase)
+                            ? $"Línea {nom.Substring(4)} ({nom})"
+                            : (nom.Equals("POCKET", StringComparison.OrdinalIgnoreCase)
+                                ? "Línea Pocket Wipes (POCKET)"
+                                : nom);
+                        return new MaquinaDetalle(m.NoMaquina, nom, lineaName);
+                    }).ToList();
+                }
+            }
+            catch (Exception exCat)
+            {
+                Console.WriteLine($"Aviso: usando catálogo en memoria por: {exCat.Message}");
+            }
+
+            // 2. Leer máquina configurada en el navegador / servicio Zebra local
+            try
+            {
+                var config = await JS.InvokeAsync<MachineConfigResult>("ZebraPrint.getMachineConfig", 2);
+                if (config != null && config.MachineId > 0)
+                {
+                    _maquinaSeleccionada = config.MachineId;
+                }
+            }
+            catch { }
+
+            // 3. Consultar IP de servidor actual
+            try
+            {
+                var srv = await JS.InvokeAsync<string>("ZebraPrint.getServerConfig");
+                if (!string.IsNullOrWhiteSpace(srv))
+                {
+                    _servidorIpInput = srv;
+                }
+                else
+                {
+                    _servidorIpInput = new Uri(Navigation.BaseUri).Host;
+                }
+            }
+            catch
+            {
+                _servidorIpInput = new Uri(Navigation.BaseUri).Host;
+            }
+
+            // 4. Cargar configuración de hardware y lista de impresoras
+            await CargarConfiguracionHardwareAsync();
+            await CargarImpresorasLocalesAsync();
+            await VerificarImpresoraAsync();
+        }
+        catch (Exception ex)
+        {
+            MostrarAlerta($"Error al cargar configuración: {ex.Message}", "danger");
+        }
+    }
+
+    private async Task CargarConfiguracionHardwareAsync()
+    {
+        try
+        {
+            var hw = await JS.InvokeAsync<HardwareConfigDto>("ZebraPrint.getHardwareConfig");
+            if (hw != null)
+            {
+                if (!string.IsNullOrWhiteSpace(hw.PrintMode))
+                {
+                    _modoImpresion = hw.PrintMode;
+                }
+                if (!string.IsNullOrWhiteSpace(hw.PrinterIp))
+                {
+                    _printerIp = hw.PrinterIp;
+                }
+                if (hw.PrinterPort > 0)
+                {
+                    _printerPort = hw.PrinterPort;
+                }
+                if (!string.IsNullOrWhiteSpace(hw.PrinterName))
+                {
+                    _impresoraSeleccionada = hw.PrinterName;
+                }
+            }
+        }
+        catch { }
+    }
+
+    private async Task CargarImpresorasLocalesAsync()
+    {
+        try
+        {
+            var res = await JS.InvokeAsync<PrintersResultDto>("ZebraPrint.getPrintersList");
+            if (res != null && res.Printers != null && res.Printers.Count > 0)
+            {
+                _listaImpresoras = res.Printers;
+                if (string.IsNullOrEmpty(_impresoraSeleccionada))
+                {
+                    _impresoraSeleccionada = !string.IsNullOrEmpty(res.Selected) ? res.Selected : _listaImpresoras.FirstOrDefault() ?? "";
+                }
+            }
+        }
+        catch { }
+    }
+
+    private async Task CambiarModoImpresion(string nuevoModo)
+    {
+        _modoImpresion = nuevoModo;
+        _resultadoPruebaRed = "";
+        if (_modoImpresion == "USB")
+        {
+            await GuardarConfiguracionUsbAsync();
+        }
+        StateHasChanged();
+    }
+
+    private async Task GuardarConfiguracionUsbAsync()
+    {
+        _guardandoHardware = true;
+        try
+        {
+            var config = new
+            {
+                printMode = "USB",
+                printerName = _impresoraSeleccionada
+            };
+            var res = await JS.InvokeAsync<GenericJsResultDto>("ZebraPrint.saveHardwareConfig", config);
+            if (res != null && res.Success)
+            {
+                MostrarAlerta("Modo de impresión configurado a USB Local exitosamente.", "success");
+            }
+            await VerificarImpresoraAsync();
+        }
+        catch (Exception ex)
+        {
+            MostrarAlerta($"Error al cambiar a USB: {ex.Message}", "danger");
+        }
+        finally
+        {
+            _guardandoHardware = false;
+        }
+    }
+
+    private async Task ProbarConexionRedAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_printerIp))
+        {
+            _resultadoPruebaRed = "Debe ingresar una dirección IP válida.";
+            _resultadoPruebaRedOk = false;
+            return;
+        }
+
+        _probandoRed = true;
+        _resultadoPruebaRed = "";
+        try
+        {
+            int p = _printerPort > 0 ? _printerPort : 9100;
+            var res = await JS.InvokeAsync<CheckNetworkResultDto>("ZebraPrint.testNetworkPrinter", _printerIp.Trim(), p);
+            if (res != null && res.Success)
+            {
+                _resultadoPruebaRedOk = true;
+                _resultadoPruebaRed = res.Message ?? $"Conexión socket exitosa con {_printerIp}:{p}";
+            }
+            else
+            {
+                _resultadoPruebaRedOk = false;
+                _resultadoPruebaRed = res?.Message ?? $"Fallo al conectar con socket {_printerIp}:{p}";
+            }
+        }
+        catch (Exception ex)
+        {
+            _resultadoPruebaRedOk = false;
+            _resultadoPruebaRed = $"Error de prueba: {ex.Message}";
+        }
+        finally
+        {
+            _probandoRed = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task GuardarConfiguracionRedAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_printerIp))
+        {
+            MostrarAlerta("Debe especificar la IP fija de la impresora Zebra en red.", "warning");
+            return;
+        }
+
+        _guardandoHardware = true;
+        try
+        {
+            int p = _printerPort > 0 ? _printerPort : 9100;
+            var config = new
+            {
+                printMode = "Red",
+                printerIp = _printerIp.Trim(),
+                printerPort = p
+            };
+            var res = await JS.InvokeAsync<GenericJsResultDto>("ZebraPrint.saveHardwareConfig", config);
+            if (res != null && res.Success)
+            {
+                MostrarAlerta($"Impresora de red guardada y asignada exitosamente ({_printerIp.Trim()}:{p}).", "success");
+            }
+            else
+            {
+                MostrarAlerta("Aviso: " + (res?.Message ?? "No se pudo guardar la configuración."), "warning");
+            }
+            await VerificarImpresoraAsync();
+        }
+        catch (Exception ex)
+        {
+            MostrarAlerta($"Error al guardar modo Red: {ex.Message}", "danger");
+        }
+        finally
+        {
+            _guardandoHardware = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task PurgarColaImpresionAsync()
+    {
+        _purgandoCola = true;
+        try
+        {
+            var res = await JS.InvokeAsync<GenericJsResultDto>("ZebraPrint.purgeSpoolQueue");
+            if (res != null && res.Success)
+            {
+                MostrarAlerta("Cola de impresión purgada exitosamente.", "success");
+            }
+            else
+            {
+                MostrarAlerta("Aviso al purgar: " + (res?.Message ?? "No se pudo purgar la cola."), "warning");
+            }
+            await VerificarImpresoraAsync();
+        }
+        catch (Exception ex)
+        {
+            MostrarAlerta($"Error al purgar cola: {ex.Message}", "danger");
+        }
+        finally
+        {
+            _purgandoCola = false;
+        }
+    }
+
+    private async Task DespausarImpresoraAsync()
+    {
+        _despausando = true;
+        try
+        {
+            var res = await JS.InvokeAsync<GenericJsResultDto>("ZebraPrint.resumePrinter");
+            if (res != null && res.Success)
+            {
+                MostrarAlerta("Impresora despausada exitosamente.", "success");
+            }
+            else
+            {
+                MostrarAlerta("Aviso al despausar: " + (res?.Message ?? "No se pudo despausar la impresora."), "warning");
+            }
+            await VerificarImpresoraAsync();
+        }
+        catch (Exception ex)
+        {
+            MostrarAlerta($"Error al despausar impresora: {ex.Message}", "danger");
+        }
+        finally
+        {
+            _despausando = false;
+        }
+    }
+
+    private async Task GuardarImpresoraSeleccionadaAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_impresoraSeleccionada)) return;
+        _guardandoImpresora = true;
+        try
+        {
+            var res = await JS.InvokeAsync<GenericJsResultDto>("ZebraPrint.savePrinterConfig", _impresoraSeleccionada);
+            if (res != null && res.Success)
+            {
+                _impresoraNombre = _impresoraSeleccionada;
+                MostrarAlerta($"Impresora USB '{_impresoraSeleccionada}' asignada con éxito a esta PC.", "success");
+            }
+            else
+            {
+                MostrarAlerta("No se pudo guardar la impresora en el agente local.", "warning");
+            }
+            await VerificarImpresoraAsync();
+        }
+        catch (Exception ex)
+        {
+            MostrarAlerta($"Error al asignar impresora: {ex.Message}", "danger");
+        }
+        finally
+        {
+            _guardandoImpresora = false;
+        }
+    }
+
+    private async Task GuardarServidorAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_servidorIpInput))
+        {
+            MostrarAlerta("Debe ingresar una dirección IP o nombre de host válido.", "warning");
+            return;
+        }
+
+        string cleanIp = _servidorIpInput.Trim().Replace("http://", "").Replace("https://", "").TrimEnd('/');
+        int colonIdx = cleanIp.IndexOf(':');
+        if (colonIdx > 0)
+        {
+            cleanIp = cleanIp.Substring(0, colonIdx);
+        }
+
+        _guardandoServidor = true;
+        _alertaMensaje = "";
+        try
+        {
+            var res = await JS.InvokeAsync<SaveServerResultDto>("ZebraPrint.saveServerConfig", cleanIp);
+            if (res != null && res.Success)
+            {
+                MostrarAlerta($"Servidor central actualizado a '{cleanIp}'. Redirigiendo...", "success");
+                await Task.Delay(1000);
+                string redirectUrl = $"http://{cleanIp}:5106/configuracion";
+                Navigation.NavigateTo(redirectUrl, forceLoad: true);
+            }
+            else
+            {
+                MostrarAlerta("No se pudo guardar la IP del servidor en el agente local.", "warning");
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarAlerta($"Error al actualizar servidor: {ex.Message}", "danger");
+        }
+        finally
+        {
+            _guardandoServidor = false;
+        }
+    }
+
+    private async Task VerificarImpresoraAsync()
+    {
+        try
+        {
+            // 1. Consultar microservicio Zebra en PC cliente (127.0.0.1:9100)
+            try
+            {
+                var clientStatus = await JS.InvokeAsync<ZebraStatusDto>("ZebraPrint.checkStatus");
+                if (clientStatus != null && clientStatus.Connected)
+                {
+                    _impresoraConectada = true;
+                    _impresoraNombre = clientStatus.PrinterName ?? "Zebra";
+                    _impresoraMensaje = clientStatus.Message ?? "Conectada en PC cliente";
+                    _modoImpresion = !string.IsNullOrWhiteSpace(clientStatus.PrintMode) ? clientStatus.PrintMode : "USB";
+                    if (!string.IsNullOrWhiteSpace(clientStatus.PrinterIp))
+                    {
+                        _printerIp = clientStatus.PrinterIp;
+                    }
+                    if (clientStatus.PrinterPort > 0)
+                    {
+                        _printerPort = clientStatus.PrinterPort;
+                    }
+                    _impresoraEnPausa = clientStatus.IsPaused;
+                    _trabajosEnCola = clientStatus.CJobs;
+                    StateHasChanged();
+                    return;
+                }
+            }
+            catch { }
+
+            // 2. Si no hay cliente local detectado, consultar servidor Spooler
+            var estado = await ImpresionService.ObtenerEstadoImpresoraAsync();
+            _impresoraConectada = estado.Conectada;
+            _impresoraNombre = string.IsNullOrWhiteSpace(estado.NombreImpresora) ? "USB" : estado.NombreImpresora;
+            _impresoraMensaje = estado.Mensaje ?? "";
+        }
+        catch (Exception ex)
+        {
+            _impresoraConectada = false;
+            _impresoraNombre = "";
+            _impresoraMensaje = $"Error al verificar impresora: {ex.Message}";
+        }
+        StateHasChanged();
+    }
+
+    private void SeleccionarMaquina(int noMaquina)
+    {
+        _maquinaSeleccionada = noMaquina;
+    }
+
+    private async Task GuardarMaquinaAsync()
+    {
+        if (_maquinaSeleccionada <= 0)
+        {
+            MostrarAlerta("Debe seleccionar una máquina de producción de la lista.", "warning");
+            return;
+        }
+
+        _guardando = true;
+        _alertaMensaje = "";
+        try
+        {
+            string nombre = ObtenerTextoAmigable(_maquinaSeleccionada);
+            await JS.InvokeVoidAsync("ZebraPrint.saveMachineConfig", _maquinaSeleccionada, nombre);
+            MostrarAlerta($"Terminal asignada con éxito a {nombre}.", "success");
+            await Task.Delay(1200);
+            Navigation.NavigateTo(UrlVolver, forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            MostrarAlerta($"Error al guardar máquina: {ex.Message}", "danger");
+        }
+        finally
+        {
+            _guardando = false;
+        }
+    }
+
+    private async Task EnviarPruebaImpresionAsync()
+    {
+        _enviandoPrueba = true;
+        _alertaMensaje = "";
+        try
+        {
+            string modoDesc = _modoImpresion == "Red" ? "RED ETHERNET" : "USB LOCAL";
+            string destDesc = _modoImpresion == "Red" ? $"{_printerIp}:{_printerPort}" : _impresoraNombre;
+            string zplPrueba = "^XA\n" +
+                               "^FO50,40^A0N,36,36^FDPRUEBA ZEBRA PALLETS WW^FS\n" +
+                               $"^FO50,85^A0N,26,26^FDMODO: {modoDesc}^FS\n" +
+                               $"^FO50,120^A0N,24,24^FDDESTINO: {destDesc}^FS\n" +
+                               $"^FO50,155^A0N,24,24^FDFECHA: {DateTime.Now:yyyy-MM-dd HH:mm:ss}^FS\n" +
+                               $"^FO50,190^A0N,22,22^FDMAQUINA: {ObtenerTextoAmigable(_maquinaSeleccionada)}^FS\n" +
+                               "^FO50,225^A0N,20,20^FDKIMBERLY-CLARK TLAXCALA - OK^FS\n" +
+                               "^XZ";
+
+            // 1. Intentar microservicio Zebra local en PC cliente (127.0.0.1:9100)
+            try
+            {
+                var clientRes = await JS.InvokeAsync<ZebraPrintResultDto>("ZebraPrint.printZpl", zplPrueba);
+                if (clientRes != null && clientRes.Success)
+                {
+                    MostrarAlerta($"Etiqueta de prueba enviada con éxito ({modoDesc}): {clientRes.Message}", "success");
+                    return;
+                }
+            }
+            catch { }
+
+            // 2. Fallback: Servidor Spooler
+            var (ok, msg) = await ImpresionService.EnviarZplRawAsync(zplPrueba);
+            if (ok)
+            {
+                MostrarAlerta($"Etiqueta de prueba enviada con éxito (Servidor): {msg}", "success");
+            }
+            else
+            {
+                MostrarAlerta($"Aviso de Impresión: {msg}", "warning");
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarAlerta($"Error al enviar prueba: {ex.Message}", "danger");
+        }
+        finally
+        {
+            _enviandoPrueba = false;
+        }
+    }
+
+    private string ObtenerTextoAmigable(int noMaquina)
+    {
+        var item = _maquinasConDetalle.FirstOrDefault(x => x.NoMaquina == noMaquina);
+        return item != null ? $"{item.NombreLinea} (ID {item.NoMaquina})" : $"Máquina #{noMaquina}";
+    }
+
+    private void MostrarAlerta(string msg, string tipo)
+    {
+        _alertaMensaje = msg;
+        _alertaTipo = tipo;
+        StateHasChanged();
+    }
+}

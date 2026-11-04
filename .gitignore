@@ -1,0 +1,45 @@
+﻿# Visual Studio / Build Results
+.vs/
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Node.js / React / Vite
+node_modules/
+dist/
+dist-ssr/
+*.local
+.npm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.turbo
+
+# Instaladores y Binarios autogenerados pesados
+*.exe
+*.dll
+*.pdb
+*.msi
+*.appx
+*.zip
+Setup_PalletsPanal_Cliente.exe
+Setup_PalletsWW_Cliente.exe
+Instalador_Cliente_Zebra/*.exe
+Instalador_Cliente_Zebra/*.pdb
+
+# Carpetas de referencia externa
+Apps ejemplo/
+
+# Archivos temporales y backups
+*.bak
+*.tmp
+*.log
+Thumbs.db
+Desktop.ini
+.DS_Store

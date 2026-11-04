@@ -1,0 +1,87 @@
+﻿@code {
+    [Parameter] public string Message { get; set; } = string.Empty;
+    [Parameter] public string Mensaje { get => Message; set => Message = value; }
+
+    [Parameter] public string AlertType { get; set; } = "success";
+    [Parameter] public string Tipo { get => AlertType; set => AlertType = value; }
+
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public bool Visible { get => IsVisible; set => IsVisible = value; }
+
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+    [Parameter] public EventCallback<bool> VisibleChanged { get => IsVisibleChanged; set => IsVisibleChanged = value; }
+
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private CancellationTokenSource? _cts;
+
+    protected override void OnParametersSet()
+    {
+        if (IsVisible)
+        {
+            _cts?.Cancel();
+            _cts = new CancellationTokenSource();
+            _ = AutoDismissAsync(_cts.Token);
+        }
+    }
+
+    private async Task AutoDismissAsync(CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(5000, token);
+            if (!token.IsCancellationRequested)
+            {
+                await Cerrar();
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (TaskCanceledException) { }
+    }
+
+    private async Task Cerrar()
+    {
+        _cts?.Cancel();
+        IsVisible = false;
+        if (IsVisibleChanged.HasDelegate)
+            await IsVisibleChanged.InvokeAsync(false);
+        if (OnClose.HasDelegate)
+            await OnClose.InvokeAsync();
+    }
+
+    private string GetIcon() => AlertType switch
+    {
+        "danger" => "bi-exclamation-triangle-fill",
+        "warning" => "bi-exclamation-circle-fill",
+        "info" => "bi-info-circle-fill",
+        _ => "bi-check-circle-fill"
+    };
+
+    private string GetHeaderTitle() => AlertType switch
+    {
+        "danger" => "Error del Sistema",
+        "warning" => "Advertencia de Captura",
+        "info" => "Información",
+        _ => "Operación Exitosa"
+    };
+}
+
+@if (IsVisible && !string.IsNullOrEmpty(Message))
+{
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 2050; max-width: 480px;">
+        <div class="toast show align-items-center text-white bg-@AlertType border-0 shadow-lg" role="alert" style="border-radius: 12px; backdrop-filter: blur(8px);">
+            <div class="p-3">
+                <div class="d-flex align-items-center justify-content-between mb-1 pb-1 border-bottom border-white border-opacity-25">
+                    <span class="small fw-bold text-uppercase d-flex align-items-center gap-2">
+                        <i class="bi @GetIcon() fs-5"></i>
+                        <span>@GetHeaderTitle()</span>
+                    </span>
+                    <button type="button" class="btn-close btn-close-white ms-2" aria-label="Cerrar" @onclick="Cerrar"></button>
+                </div>
+                <div class="toast-body p-0 pt-2 fs-6 fw-medium" style="line-height: 1.4;">
+                    @Message
+                </div>
+            </div>
+        </div>
+    </div>
+}

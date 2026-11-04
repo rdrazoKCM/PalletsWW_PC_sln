@@ -1,0 +1,2808 @@
+﻿@page "/"
+@page "/captura"
+@rendermode InteractiveServer
+@inject PalletsApiService PalletsService
+@inject ValesApiService ValesService
+@inject CatalogosApiService CatalogosService
+@inject CatalogCacheService CatalogCache
+@inject ImpresionApiService ImpresionService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@implements IDisposable
+
+<PageTitle>Captura de Pallets - Pallets WW</PageTitle>
+
+<style>
+    .no-spinners::-webkit-outer-spin-button,
+    .no-spinners::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    .no-spinners {
+        -moz-appearance: textfield;
+    }
+
+    /* MODO CAPTURA NORMAL: Vista compacta fija en pantalla sin scroll en la ventana (Encabezados 100% visibles) */
+    .vista-captura-normal {
+        overflow: hidden;
+    }
+    .vista-captura-normal #palletsTableContainer {
+        max-height: 440px;
+        min-height: 250px;
+        overflow-y: auto;
+        padding-bottom: 6px;
+    }
+
+    /* MODO TURNO ANTERIOR: Scroll activado para visualizar el banner de advertencia y los vales anteriores */
+    .vista-turno-anterior {
+        overflow-y: auto;
+    }
+    .vista-turno-anterior #palletsTableContainer {
+        max-height: 535px;
+        overflow-y: auto;
+        padding-bottom: 15px;
+    }
+
+    /* Botones de Acción de Pallet Ultracompactos y Visibles */
+    .btn-action-pallet {
+        width: 28px;
+        height: 28px;
+        padding: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 6px !important;
+        font-size: 0.88rem !important;
+        transition: all 0.15s ease-in-out !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08) !important;
+        cursor: pointer;
+    }
+    .btn-action-print {
+        background-color: #fffbeb !important;
+        border: 1.5px solid #f59e0b !important;
+        color: #b45309 !important;
+    }
+    .btn-action-print:hover {
+        background-color: #f59e0b !important;
+        border-color: #d97706 !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 6px rgba(245, 158, 11, 0.4) !important;
+        transform: translateY(-1px);
+    }
+    .btn-action-edit {
+        background-color: #eff6ff !important;
+        border: 1.5px solid #3b82f6 !important;
+        color: #1d4ed8 !important;
+    }
+    .btn-action-edit:hover {
+        background-color: #2563eb !important;
+        border-color: #1d4ed8 !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4) !important;
+        transform: translateY(-1px);
+    }
+    .btn-action-save {
+        background-color: #10b981 !important;
+        border: 1.5px solid #059669 !important;
+        color: #ffffff !important;
+    }
+    .btn-action-save:hover {
+        background-color: #059669 !important;
+        box-shadow: 0 2px 6px rgba(16, 185, 129, 0.4) !important;
+        transform: translateY(-1px);
+    }
+    .btn-action-cancel {
+        background-color: #f8fafc !important;
+        border: 1.5px solid #94a3b8 !important;
+        color: #475569 !important;
+    }
+    .btn-action-cancel:hover {
+        background-color: #e2e8f0 !important;
+        color: #0f172a !important;
+        transform: translateY(-1px);
+    }
+</style>
+
+<div class="container-fluid px-1 py-1 @(_esTurnoAnterior ? "vista-turno-anterior" : "vista-captura-normal")">
+
+    <!-- COCKPIT INDUSTRIAL: CABECERA INTEGRADA Y CONTEXTO DE TURNO -->
+    <div class="card card-glass mb-3 shadow-sm" style="border: 2px solid #0284c7 !important; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.08);">
+        <div class="card-body p-2 px-3">
+            <!-- FILA 1: TÍTULO, IDENTIFICADOR DE PLANTA Y HARDWARE/ACCIONES -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center pb-2 border-bottom gap-2">
+                <!-- Izquierda: Título y Datos Institucionales -->
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <h4 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                        <i class="bi bi-box-seam-fill text-primary"></i>
+                        <span>Captura de Pallets</span>
+                    </h4>
+                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1">
+                        <i class="bi bi-geo-alt-fill me-1"></i>Planta Tlaxcala - Depto 3 Wet Wipes
+                    </span>
+                    @if (_encabezadoActual != null && _encabezadoActual.IdRT_Encabezado > 0)
+                    {
+                        <span class="badge bg-dark text-warning border border-secondary font-monospace px-2 py-1 shadow-sm">
+                            Encabezado: @_encabezadoActual.IdRT_Encabezado
+                        </span>
+                    }
+                </div>
+
+                <!-- Derecha: Semáforo de Hardware Zebra (Mejora 5) y Botón Actualizar (Mejora 4 preservada) -->
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    @if (_impresoraEnPausa)
+                    {
+                        <span class="badge bg-warning text-dark border border-warning px-3 py-1 fs-6 shadow-sm d-flex align-items-center gap-1" title="@_impresoraMensaje" style="cursor: help;">
+                            <i class="bi bi-pause-circle-fill text-dark"></i>
+                            <span>Impresora en PAUSA (@(_trabajosEnCola) en cola)</span>
+                        </span>
+                    }
+                    else if (_impresoraConectada)
+                    {
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-1 fs-6 shadow-sm d-flex align-items-center gap-1" title="@_impresoraMensaje">
+                            <i class="bi bi-printer-fill text-success"></i>
+                            <span>Impresora @_impresoraNombre Lista</span>
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-3 py-1 fs-6 shadow-sm d-flex align-items-center gap-1" title="@_impresoraMensaje" style="cursor: help;">
+                            <i class="bi bi-exclamation-triangle-fill text-danger"></i>
+                            <span>Impresora Desconectada</span>
+                        </span>
+                    }
+
+                    <button class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1 shadow-sm fw-semibold" @onclick="RefrescarTodo" title="Actualiza la información completa de producción, turnos y vales">
+                        <i class="bi bi-arrow-clockwise"></i>
+                        <span>Actualizar Información</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- FILA 2: BARRA COCKPIT DE CONTEXTO (CHIPS INFORMATIVOS) Y OPERADOR DESTACADO -->
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 pt-2">
+                <!-- Bloque Izquierdo: Chips de Datos Fijos (Sin inputs falsos - Mejoras 1 y 2) -->
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <!-- Máquina Asignada -->
+                    <div class="d-inline-flex align-items-center px-2 py-1 rounded bg-light border border-secondary border-opacity-25 shadow-sm" title="Máquina Asignada Fija">
+                        <i class="bi bi-cpu-fill text-primary me-1"></i>
+                        <span class="small text-muted me-1">Máquina:</span>
+                        <strong class="text-dark font-monospace">@NombreMaquinaSeleccionada</strong>
+                    </div>
+
+                    <!-- Turno -->
+                    <div class="d-inline-flex align-items-center px-2 py-1 rounded bg-light border border-secondary border-opacity-25 shadow-sm" title="Turno Activo">
+                        <i class="bi bi-clock-history text-secondary me-1"></i>
+                        <span class="small text-muted me-1">Turno:</span>
+                        <strong class="text-dark font-monospace">@_turnoSeleccionado (@ObtenerRangoTurno(_turnoSeleccionado))</strong>
+                    </div>
+
+                    <!-- Fecha -->
+                    <div class="d-inline-flex align-items-center px-2 py-1 rounded bg-light border border-secondary border-opacity-25 shadow-sm" title="Fecha de Producción">
+                        <i class="bi bi-calendar-check text-secondary me-1"></i>
+                        <span class="small text-muted me-1">Fecha:</span>
+                        <strong class="text-dark font-monospace">@_fechaSeleccionada.ToString("dd/MM/yyyy")</strong>
+                    </div>
+
+                    <!-- Supervisor y Tripulación -->
+                    <div class="d-inline-flex align-items-center px-2 py-1 rounded bg-light border border-secondary border-opacity-25 shadow-sm" title="Supervisor y Tripulación Asignada">
+                        <i class="bi bi-people-fill text-secondary me-1"></i>
+                        <span class="badge bg-secondary text-white fw-bold me-1">Trip @TripulacionActual</span>
+                        <strong class="text-dark small text-truncate" style="max-width: 220px;">@NombreSupervisorActual</strong>
+                    </div>
+                </div>
+
+                <!-- Bloque Derecho: Operador que Captura Destacado e Interactivo (Mejora 3) -->
+                <div class="d-flex align-items-center gap-2 p-1 px-2 rounded @(_operadorValido ? "bg-success bg-opacity-10 border border-success" : (string.IsNullOrEmpty(_noEmpleadoInput) ? "bg-warning bg-opacity-10 border border-warning shadow-sm" : "bg-danger bg-opacity-10 border border-danger"))">
+                    <label class="small fw-bold mb-0 d-flex align-items-center @(_operadorValido ? "text-success" : (string.IsNullOrEmpty(_noEmpleadoInput) ? "text-warning text-dark" : "text-danger"))">
+                        <i class="bi @(_operadorValido ? "bi-person-check-fill" : "bi-person-fill-exclamation") me-1 fs-6"></i>
+                        <span>Operador:</span>
+                    </label>
+                    <div class="input-group input-group-sm" style="width: auto;">
+                        <input type="text" inputmode="numeric" maxlength="10" 
+                               class="form-control form-control-sm fw-bold text-center no-spinners @(_operadorValido ? "border-success text-success bg-white" : (string.IsNullOrEmpty(_noEmpleadoInput) ? "border-warning bg-white" : "border-danger text-danger bg-white"))" 
+                               style="width: 85px; font-size: 0.92rem;"
+                               placeholder="No. Emp" 
+                               @bind="_noEmpleadoInput" 
+                               @bind:event="oninput" 
+                               @onkeydown="OnKeyDownEmpleadoAsync" 
+                               @onblur="ValidarOperadorAsync" />
+                        <span class="input-group-text bg-white small text-truncate @(_operadorValido ? "text-success fw-bold" : (string.IsNullOrEmpty(_noEmpleadoInput) ? "text-secondary" : "text-danger"))" style="min-width: 180px; max-width: 380px;" title="@_nombreOperadorActivo">
+                            @if (_operadorValido)
+                            {
+                                <i class="bi bi-check-circle-fill me-1 text-success"></i>
+                                <span>@_nombreOperadorActivo</span>
+                            }
+                            else if (string.IsNullOrEmpty(_noEmpleadoInput))
+                            {
+                                <span class="text-secondary"><i class="bi bi-keyboard text-warning me-1"></i>Inserte No. Emp</span>
+                            }
+                            else
+                            {
+                                <span class="text-danger"><i class="bi bi-x-circle me-1"></i>@_nombreOperadorActivo</span>
+                            }
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+        @if (_noMaquinaSeleccionada <= 0)
+    {
+        <div class="alert alert-danger border-danger shadow-sm d-flex flex-wrap align-items-center justify-content-between p-3 mb-3" style="border-left: 6px solid #dc3545 !important; border-radius: 8px;">
+            <div class="d-flex align-items-center gap-3">
+                <i class="bi bi-exclamation-octagon-fill fs-2 text-danger"></i>
+                <div>
+                    <h6 class="alert-heading fw-bold mb-1 text-danger">¡ATENCIÓN: TERMINAL NO ASIGNADA A NINGUNA MÁQUINA!</h6>
+                    <div class="small text-dark">Esta computadora aún no tiene configurada su línea de producción. Por seguridad industrial, la captura de tarimas está bloqueada para evitar registrar información en una línea equivocada.</div>
+                </div>
+            </div>
+            <a href="/configuracion" class="btn btn-danger fw-bold px-3 py-2 shadow text-white mt-2 mt-md-0">
+                <i class="bi bi-gear-fill me-1"></i> Asignar Máquina en Configuración
+            </a>
+        </div>
+    }
+<!-- BANNER DE VALE ACTIVO Y GESTIÓN DE VALES -->
+    <div class="card card-glass mb-3 shadow-sm" style="border: 2px solid #64748b !important; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
+        <div class="card-body p-3">
+            <!-- CABECERA SUPERIOR: DETALLES DEL VALE ACTIVO + CAMPOS COMPACTOS A LA DERECHA -->
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-2">
+                
+                <!-- Izquierda: Identificador de Vale Activo y Producto Asignado -->
+                @if (_valeActual != null)
+                {
+                    <div class="d-flex flex-wrap align-items-center gap-3">
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="badge @(_esTurnoAnterior ? "bg-warning text-dark border border-warning shadow" : "bg-primary text-white shadow") fs-5 font-monospace px-3 py-2 d-flex align-items-center gap-2">
+                                <i class="bi bi-box-seam-fill"></i>
+                                <span>VALE @_valeActual.FolioVale</span>
+                            </span>
+                            <span class="badge @(_pallets.Count >= 38 ? "bg-danger text-white" : "bg-primary text-white") fs-6 font-monospace px-3 py-2 shadow-sm d-flex align-items-center gap-1" title="Tarimas Capturadas del Vale">
+                                <i class="bi bi-boxes"></i>
+                                <span>@_pallets.Count / 38 Tarimas</span>
+                            </span>
+                            <span class="badge bg-secondary bg-opacity-10 text-dark border fs-6 font-monospace px-3 py-2 shadow-sm d-flex align-items-center gap-1" title="Total de Cajas Acumuladas en este Vale">
+                                <i class="bi bi-archive-fill text-secondary"></i>
+                                <span>@TotalCajasAcumuladas Cajas</span>
+                            </span>
+                            @if (_esTurnoAnterior)
+                            {
+                                <span class="badge bg-danger text-white fs-6 font-monospace px-3 py-2 shadow-sm">
+                                    <i class="bi bi-clock-history me-1"></i>TURNO ANTERIOR
+                                </span>
+                            }
+                            @if (_pallets.Count >= 38)
+                            {
+                                <span class="badge bg-danger text-white fs-6 font-monospace px-2 py-2 shadow-sm d-flex align-items-center gap-1" title="Límite físico de 38 tarimas alcanzado">
+                                    <i class="bi bi-lock-fill"></i>Límite 38/38
+                                </span>
+                            }
+                        </div>
+
+                        <!-- Información Clara del Producto Asignado (Optimizada y Espaciosa) -->
+                        <div class="d-flex align-items-center gap-2 bg-white px-3 py-1 rounded-3 border shadow-sm flex-grow-1" style="max-width: 680px;">
+                            <span class="badge bg-info bg-opacity-25 text-info-emphasis border border-info border-opacity-25 fw-bold font-monospace fs-6 px-2 py-1">
+                                @_valeActual.ClaveProducto
+                            </span>
+                            <span class="fw-bold fs-6 text-dark text-truncate" title="@_valeActual.DescripcionProducto">
+                                @_valeActual.DescripcionProducto
+                            </span>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-warning py-1 px-3 mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                        <span>No hay vales de producción activos en este turno. Cree uno nuevo con <strong>+ Nuevo Vale</strong> para registrar los pallets.</span>
+                    </div>
+                }
+
+                <!-- Extremo Derecho: Botones de Acción -->
+                <div class="d-flex align-items-center gap-2 ms-auto">
+                    <!-- Botones de Acción: Nuevo Vale y Modificar Vale -->
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-warning btn-sm d-flex align-items-center gap-1 shadow-sm fw-bold px-3" 
+                                @onclick="AbrirModalModificarVale" 
+                                disabled="@(_valeActual == null)"
+                                title="Modifica el folio físico o el producto asignado a este vale">
+                            <i class="bi bi-pencil-square"></i>
+                            <span>Modificar Vale</span>
+                        </button>
+
+                        <button class="btn btn-success btn-sm d-flex align-items-center gap-1 shadow-sm fw-bold px-3" 
+                                @onclick="AbrirModalNuevoVale" 
+                                disabled="@(_encabezadoActual == null || !_encabezadoActual.Encontrado || _encabezadoActual.IdRT_Encabezado <= 0)"
+                                title="Crear un nuevo vale físico para la máquina activa">
+                            <i class="bi bi-plus-circle-fill"></i>
+                            <span>+ Nuevo Vale</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- TABLAS COMPARATIVAS DE VALES: TURNO ACTUAL Y TURNO ANTERIOR (ALTA VISIBILIDAD) -->
+            <div class="row g-2 mt-1">
+                <!-- VALES TURNO ACTUAL -->
+                <div class="col-12 col-xl-6">
+                    <div class="card h-100 shadow-sm" style="border: 2px solid #0284c7 !important; background: rgba(240, 249, 255, 0.65); box-shadow: 0 2px 6px rgba(2,132,199,0.12);">
+                        <div class="card-header py-1 px-3 bg-primary bg-opacity-10 d-flex justify-content-between align-items-center" style="border-bottom: 2px solid #0284c7 !important;">
+                            <span class="fw-bold small text-primary d-flex align-items-center gap-1">
+                                <i class="bi bi-clock-fill"></i>
+                                <span>VALES TURNO ACTUAL</span>
+                            </span>
+                            <span class="badge bg-primary font-monospace">@_valesDelTurno.Count vales</span>
+                        </div>
+                        <div class="card-body p-0" style="max-height: 140px; overflow-y: auto;">
+                            <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.83rem;">
+                                <thead class="table-light text-secondary sticky-top" style="font-size: 0.75rem;">
+                                    <tr>
+                                        <th class="text-center" style="width: 70px;">VALE</th>
+                                        <th class="text-center" style="width: 75px;">CLAVE</th>
+                                        <th>PRODUCTO</th>
+                                        <th class="text-center" style="width: 85px;">TOTAL CAJAS</th>
+                                        <th class="text-center" style="width: 85px;">TARIMAS</th>
+                                        <th class="text-center" style="width: 65px;">ID</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (_valesDelTurno.Count == 0)
+                                    {
+                                        <tr><td colspan="6" class="text-center py-3 text-muted">No hay vales dados de alta en el turno actual</td></tr>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var v in _valesDelTurno)
+                                        {
+                                            bool isSel = !_esTurnoAnterior && v.FolioVale == _folioValeSeleccionado;
+                                            <tr class="@(isSel ? "table-primary fw-bold border-start border-4 border-primary shadow-sm" : "")" 
+                                                style="@(isSel ? "cursor: pointer; background-color: #dbeafe !important;" : "cursor: pointer;") transition: background 0.15s ease;" 
+                                                @onclick="() => SeleccionarValeDirectoAsync(v.FolioVale)">
+                                                <td class="text-center font-monospace @(isSel ? "text-primary fw-bold fs-6" : "")">
+                                                    @if (isSel) { <i class="bi bi-check-circle-fill text-primary me-1"></i> }
+                                                    @v.FolioVale
+                                                </td>
+                                                <td class="text-center"><span class="badge @(isSel ? "bg-primary text-white" : "bg-light text-dark border")">@v.ClaveProducto</span></td>
+                                                <td class="text-truncate fw-semibold" style="max-width: 200px;">@v.DescripcionProducto</td>
+                                                <td class="text-center font-monospace fw-bold">@v.CajasProgramadas</td>
+                                                <td class="text-center font-monospace">
+                                                    @{
+                                                        int tarimasV = (!_esTurnoAnterior && v.FolioVale == _folioValeSeleccionado && _valeActual != null) ? _pallets.Count : v.TotalTarimas;
+                                                    }
+                                                    <span class="badge @(tarimasV >= 38 ? "bg-success text-white" : (isSel ? "bg-primary text-white" : "bg-light text-dark border")) font-monospace">
+                                                        @tarimasV / 38
+                                                    </span>
+                                                </td>
+                                                <td class="text-center font-monospace text-muted">@v.IdAutotblProduccion</td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VALES TURNO ANTERIOR -->
+                <div class="col-12 col-xl-6">
+                    <div class="card h-100 shadow-sm" style="border: 2px solid #d97706 !important; background: rgba(254, 249, 231, 0.65); box-shadow: 0 2px 6px rgba(217,119,6,0.12);">
+                        <div class="card-header py-1 px-3 bg-warning bg-opacity-25 d-flex justify-content-between align-items-center" style="border-bottom: 2px solid #d97706 !important;">
+                            <span class="fw-bold small text-dark d-flex align-items-center gap-1">
+                                <i class="bi bi-clock-history text-warning"></i>
+                                <span>VALES TURNO ANTERIOR</span>
+                            </span>
+                            <span class="badge bg-warning text-dark font-monospace">@_valesTurnoAnterior.Count vales</span>
+                        </div>
+                        <div class="card-body p-0" style="max-height: 140px; overflow-y: auto;">
+                            <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.83rem;">
+                                <thead class="table-light text-secondary sticky-top" style="font-size: 0.75rem;">
+                                    <tr>
+                                        <th class="text-center" style="width: 70px;">VALE</th>
+                                        <th class="text-center" style="width: 75px;">CLAVE</th>
+                                        <th>PRODUCTO</th>
+                                        <th class="text-center" style="width: 85px;">TOTAL CAJAS</th>
+                                        <th class="text-center" style="width: 85px;">TARIMAS</th>
+                                        <th class="text-center" style="width: 65px;">ID</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (_valesTurnoAnterior.Count == 0)
+                                    {
+                                        <tr><td colspan="6" class="text-center py-3 text-muted">No se encontraron vales en el turno anterior</td></tr>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var v in _valesTurnoAnterior)
+                                        {
+                                            bool isSel = _esTurnoAnterior && v.FolioVale == _folioValeSeleccionado;
+                                            <tr class="@(isSel ? "table-warning fw-bold" : "")" 
+                                                style="cursor: pointer; transition: background 0.15s ease;" 
+                                                @onclick="() => SeleccionarValeTurnoAnteriorAsync(v)">
+                                                <td class="text-center font-monospace @(isSel ? "text-danger fw-bold" : "")">
+                                                    @if (isSel) { <i class="bi bi-check-circle-fill text-danger me-1"></i> }
+                                                    @v.FolioVale
+                                                </td>
+                                                <td class="text-center"><span class="badge bg-light text-dark border">@v.ClaveProducto</span></td>
+                                                <td class="text-truncate" style="max-width: 200px;">@v.DescripcionProducto</td>
+                                                <td class="text-center font-monospace fw-bold">@v.CajasProgramadas</td>
+                                                <td class="text-center font-monospace">
+                                                    @{
+                                                        int tarimasVA = (_esTurnoAnterior && v.FolioVale == _folioValeSeleccionado && _valeActual != null) ? _pallets.Count : v.TotalTarimas;
+                                                    }
+                                                    <span class="badge @(tarimasVA >= 38 ? "bg-success text-white" : (isSel ? "bg-warning text-dark border border-warning" : "bg-light text-dark border")) font-monospace">
+                                                        @tarimasVA / 38
+                                                    </span>
+                                                </td>
+                                                <td class="text-center font-monospace text-muted">@v.IdAutotblProduccion</td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- BANNER DE ADVERTENCIA PROMINENTE: CAPTURA EN TURNO ANTERIOR -->
+    @if (_esTurnoAnterior && _valeActual != null)
+    {
+        <div class="alert alert-warning border-warning shadow-sm py-2 px-3 mb-3 d-flex align-items-center justify-content-between rounded-3">
+            <div class="d-flex align-items-center gap-3">
+                <i class="bi bi-exclamation-triangle-fill fs-2 text-warning"></i>
+                <div>
+                    <strong class="text-dark fs-6 d-block">⚠️ ATENCIÓN: CAPTURANDO EN EL TURNO ANTERIOR</strong>
+                    <div class="small text-secondary">
+                        El vale <strong>@_valeActual.FolioVale</strong> pertenece al turno anterior (Encabezado @_valeActual.IdRT_Encabezado). Las tarimas se registrarán en dicho turno.
+                    </div>
+                </div>
+            </div>
+            <span class="badge bg-warning text-dark border border-warning font-monospace fs-6 px-3 py-2 text-uppercase">
+                <i class="bi bi-clock-history me-1"></i>Turno Anterior Activo
+            </span>
+        </div>
+    }
+
+    @* MODO DE CAPTURA OCULTO TEMPORALMENTE A PETICIÓN DEL USUARIO PARA GANAR ESPACIO
+<!-- SELECTOR MODERNO DE MODO DE CAPTURA (INDIVIDUAL VS LOTE) -->
+    <div class="card card-glass mb-3 shadow-sm" style="border: 2px solid #64748b !important; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
+        <div class="card-body p-2 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <span class="fw-bold small text-secondary me-2">
+                    <i class="bi bi-sliders2 text-primary me-1"></i>MODO DE CAPTURA:
+                </span>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn @(!_modoLote ? "btn-primary fw-bold" : "btn-outline-primary")" @onclick="() => SetModoCaptura(false)">
+                        <i class="bi bi-box-seam me-1"></i>Individual (1 Tarima)
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary opacity-50" disabled title="Pestaña desactivada temporalmente por administración">
+                        <i class="bi bi-lightning-charge me-1"></i>Lote Rápido (1 a 10 Tarimas) <span class="badge bg-secondary ms-1">Inactivo</span>
+                    </button>
+                </div>
+            </div>
+
+            @if (_modoLote)
+            {
+                <div class="d-flex align-items-center gap-2">
+                    <span class="small text-muted">Tarimas a Generar:</span>
+                    <div class="btn-group btn-group-sm">
+                        @for (int c = 1; c <= 5; c++)
+                        {
+                            int val = c;
+                            <button type="button" class="btn @(_loteItems.Count == val ? "btn-warning fw-bold text-dark" : "btn-outline-secondary")" @onclick="() => GenerarLoteItems(val)">
+                                @val
+                            </button>
+                        }
+                        <button type="button" class="btn @(_loteItems.Count == 10 ? "btn-warning fw-bold text-dark" : "btn-outline-secondary")" @onclick="() => GenerarLoteItems(10)">
+                            10
+                        </button>
+                    </div>
+                    <button class="btn btn-sm btn-outline-success ms-1" @onclick="AgregarFilaLote" title="Agregar una fila más al lote">
+                        <i class="bi bi-plus-lg"></i>+ Tarima
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- PANEL DE CAPTURA EN LOTE (SI ESTÁ ACTIVO) -->
+    @if (_modoLote && _valeActual != null)
+    {
+        <div class="card mb-3 border-warning shadow-sm" style="background: rgba(254, 243, 199, 0.35);">
+            <div class="card-header bg-warning bg-opacity-25 py-2 px-3 border-warning d-flex justify-content-between align-items-center">
+                <span class="fw-bold text-dark d-flex align-items-center gap-2">
+                    <i class="bi bi-lightning-charge-fill text-warning"></i>
+                    <span>Captura en Lote: @_loteItems.Count Tarima(s) a Guardar</span>
+                    <span class="badge bg-secondary bg-opacity-25 text-dark font-monospace">Capacidad restante: @(38 - _pallets.Count) tarimas</span>
+                </span>
+                <span class="small text-muted">
+                    Se asignan horas consecutivas automáticas para garantizar que ninguna etiqueta se rechace por duplicidad.
+                </span>
+            </div>
+
+            <div class="card-body p-2">
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered align-middle mb-2 bg-white">
+                        <thead class="table-light text-secondary small text-uppercase fw-bold sticky-top" style="position: sticky; top: 0; z-index: 5; background-color: #f8fafc; box-shadow: 0 2px 4px rgba(0,0,0,0.05); letter-spacing: 0.5px;">
+                            <tr>
+                                <th style="width: 50px;" class="text-center">NO.</th>
+                                <th style="width: 140px;" class="text-center">TARIMA PROYECTADA</th>
+                                <th style="width: 100px;" class="text-center">HORA</th>
+                                <th style="width: 90px;" class="text-center">CAJAS</th>
+                                <th style="width: 130px;" class="text-center">LÍNEA DE EMPAQUE</th>
+                                <th>PRODUCTO</th>
+                                <th style="width: 80px;" class="text-center">QUITAR</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in _loteItems)
+                            {
+                                int proyectado = _pallets.Count + item.FilaIndex;
+                                <tr>
+                                    <td class="text-center font-monospace fw-bold text-muted">@item.FilaIndex</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-warning bg-opacity-25 text-warning-emphasis border border-warning font-monospace">
+                                            Tarima @proyectado
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <input type="text" id="@($"lote-hora-{item.FilaIndex}")"
+                                               class="form-control form-control-sm text-center fw-bold font-monospace @(_loteFilasConConflicto.Contains(item.FilaIndex) ? "is-invalid border-danger border-2 text-danger bg-danger bg-opacity-10" : "")" 
+                                               style="max-width: 95px; margin: 0 auto;"
+                                               @bind="item.Hora" 
+                                               @oninput="LimpiarConflictosLote"
+                                               @onblur="() => { item.Hora = NormalizarHora(item.Hora); LimpiarConflictosLote(); }"
+                                               @onkeydown="(e) => OnLoteHoraKeyDown(e, item.FilaIndex)"
+                                               placeholder="HH:mm" />
+                                    </td>
+                                    <td class="text-center">
+                                        <input type="number" class="form-control form-control-sm text-center fw-bold font-monospace" 
+                                               style="max-width: 85px; margin: 0 auto;"
+                                               @bind="item.TotalCajas" min="1" />
+                                    </td>
+                                    <td class="text-center">
+                                        <select class="form-select form-select-sm fw-semibold" @bind="item.Linea">
+                                            @foreach (var l in _lineas)
+                                            {
+                                                <option value="@l.LineaEmpaque">@l.LineaEmpaque</option>
+                                            }
+                                        </select>
+                                    </td>
+                                    <td class="small text-dark fw-semibold px-2">
+                                        @_valeActual.DescripcionProducto
+                                    </td>
+                                    <td class="text-center">
+                                        <button class="btn btn-outline-danger btn-sm p-1" title="Quitar esta tarima del lote" @onclick="() => EliminarFilaLote(item.FilaIndex)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Barra de Acciones del Lote -->
+                <div class="d-flex flex-wrap justify-content-between align-items-center pt-2 border-top gap-2">
+                    <div class="d-flex align-items-center gap-3 small">
+                        <span><strong>Total Tarimas en Lote:</strong> <span class="badge bg-dark font-monospace fs-6">@_loteItems.Count</span></span>
+                        <span><strong>Total Cajas a Registrar:</strong> <span class="badge bg-primary font-monospace fs-6">@_loteItems.Sum(x => x.TotalCajas)</span></span>
+                        <span><strong>Capacidad Resultante:</strong> <span class="badge bg-info font-monospace fs-6">@(_pallets.Count + _loteItems.Count) / 38</span></span>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-outline-secondary btn-sm" @onclick="() => SetModoCaptura(false)" disabled="@_isSaving">
+                            Cancelar Lote
+                        </button>
+                        <button id="btn-guardar-lote" class="btn btn-success fw-bold px-4 shadow d-flex align-items-center gap-2" @onclick="GuardarLotePallets" disabled="@_isSaving">
+                            @if (_isSaving)
+                            {
+                                <span class="spinner-border spinner-border-sm" role="status"></span>
+                                <span>Guardando e Imprimiendo...</span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-printer-fill fs-5"></i>
+                                <span>Guardar Lote de @_loteItems.Count Tarima(s) e Imprimir Etiquetas</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    *@
+
+    <!-- TABLA PRINCIPAL DE TARIMAS CAPTURADAS (CUADRÍCULA PROFESIONAL) -->
+    <div class="card card-glass shadow-sm mb-4" style="border: 2px solid #64748b !important; margin-bottom: 25px !important; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
+        <div class="card-header bg-white bg-opacity-75 py-2 px-3 d-flex justify-content-between align-items-center" style="border-bottom: 2px solid #64748b !important;">
+            <h5 class="mb-0 fs-6 fw-bold text-dark d-flex align-items-center gap-2">
+                <i class="bi bi-table text-primary"></i>
+                <span>Tarimas Capturadas del Vale</span>
+                @if (_valeActual != null)
+                {
+                    <span class="badge bg-primary font-monospace">Vale @_valeActual.FolioVale</span>
+                    <span class="badge @(_pallets.Count >= 38 ? "bg-danger text-white" : "bg-info bg-opacity-25 text-primary border border-info border-opacity-50") font-monospace">@_pallets.Count / 38 Tarimas</span>
+                }
+            </h5>
+            <span class="small text-muted font-monospace">
+                @if (!_modoLote)
+                {
+                    <span>Presione <kbd class="bg-light text-dark border">Enter</kbd> en la fila de captura para guardar e imprimir</span>
+                }
+                else
+                {
+                    <span>Modo Lote Activo: Revise los datos arriba y presione Guardar Lote</span>
+                }
+            </span>
+        </div>
+
+        <div class="card-body p-0">
+            <div id="palletsTableContainer" class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="min-width: 980px;">
+                    <thead class="table-light text-secondary small text-uppercase fw-bold sticky-top" style="position: sticky; top: 0; z-index: 5; background-color: #f8fafc; box-shadow: 0 2px 4px rgba(0,0,0,0.05); letter-spacing: 0.5px;">
+                        <tr>
+                            <th style="width: 50px;" class="text-center">NO.</th>
+                            <th style="width: 95px;" class="text-center">HORA</th>
+                            <th style="width: 80px;" class="text-center">CAJAS</th>
+                            <th style="width: 120px;" class="text-center">LÍNEA DE EMPAQUE</th>
+                            <th style="width: 155px;" class="text-center">NO. TARIMA</th>
+                            <th style="width: 130px;" class="text-center">LOTE</th>
+                            <th style="width: 80px;" class="text-center">VALE</th>
+                            <th>DESCRIPCIÓN DEL PRODUCTO</th>
+                            <th style="width: 110px;" class="text-center">ID PALLET</th>
+                            <th style="width: 90px;" class="text-center">ACCIONES</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        <!-- LISTADO DE TARIMAS REGISTRADAS -->
+                        @if (_valeActual == null)
+                        {
+                            <tr>
+                                <td colspan="10" class="text-center py-5 text-muted">
+                                    <i class="bi bi-receipt fs-1 d-block mb-2 text-warning opacity-75"></i>
+                                    <span class="fw-semibold fs-6 text-dark d-block">No hay vales de producción activos, crea uno para registrar los pallets.</span>
+                                    <div class="small text-muted mt-1">Presione el botón <strong>+ Nuevo Vale</strong> para dar de alta el primer vale del turno, o seleccione un vale del turno anterior arriba si requiere capturar remanentes.</div>
+                                </td>
+                            </tr>
+                        }
+                        else if (_pallets.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="10" class="text-center py-5 text-muted">
+                                    <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i>
+                                    <span class="fw-semibold text-dark d-block">Este vale físico no tiene tarimas capturadas aún.</span>
+                                    <div class="small text-muted mt-1">Ingrese los datos en la fila inferior y presione <strong>Guardar</strong> o <kbd>Enter</kbd> para registrar la primera tarima.</div>
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @for (int i = 0; i < _pallets.Count; i++)
+                            {
+                                var p = _pallets[i];
+                                int numTarimaFila = i + 1;
+                                <tr class="@(p.IdtblPallets == _ultimoIdGuardado ? "row-pulse-success" : "") @(_editingId == p.IdtblPallets ? "table-warning" : "") @(_palletsConConflicto.Contains(p.IdtblPallets) ? "table-danger row-pulse-danger border border-danger border-2" : "")">
+                                    <!-- Contador Secuencial (1, 2, 3... Sin #) -->
+                                    <td class="text-center font-monospace fw-bold text-secondary">
+                                        @numTarimaFila
+                                    </td>
+
+                                    <!-- Hora -->
+                                    <td class="text-center">
+                                        @if (_editingId == p.IdtblPallets)
+                                        {
+                                            <input type="text" class="form-control form-control-sm text-center fw-bold font-monospace" @bind="p.Hora" />
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-light text-dark border font-monospace">@FormatHora(p.Hora)</span>
+                                        }
+                                    </td>
+
+                                    <!-- Cajas -->
+                                    <td class="text-center fw-bold fs-6 text-dark font-monospace">
+                                        @if (_editingId == p.IdtblPallets)
+                                        {
+                                            <input type="number" class="form-control form-control-sm text-center fw-bold" @bind="p.TotalCajas" />
+                                        }
+                                        else
+                                        {
+                                            <span>@p.TotalCajas</span>
+                                        }
+                                    </td>
+
+                                    <!-- Línea Empaque -->
+                                    <td class="text-center">
+                                        @if (_editingId == p.IdtblPallets)
+                                        {
+                                            <select class="form-select form-select-sm" @bind="p.LineaEmpaque">
+                                                @foreach (var l in _lineas)
+                                                {
+                                                    <option value="@l.LineaEmpaque">@l.LineaEmpaque</option>
+                                                }
+                                            </select>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-info bg-opacity-10 text-info border border-info font-monospace">@p.LineaEmpaque</span>
+                                        }
+                                    </td>
+
+                                    <!-- No. Tarima -->
+                                    <td class="text-center fw-bold font-monospace text-primary">
+                                        @(!string.IsNullOrEmpty(p.NoTarima) ? p.NoTarima : $"{p.IdtblPallets}")
+                                    </td>
+
+                                    <!-- Lote -->
+                                    <td class="text-center font-monospace text-secondary small">
+                                        @(!string.IsNullOrEmpty(p.Lote) ? p.Lote : "--")
+                                    </td>
+
+                                    <!-- Folio Vale -->
+                                    <td class="text-center font-monospace fw-bold text-muted">
+                                        @p.FolioVale
+                                    </td>
+
+                                    <!-- Descripción Producto -->
+                                    <td class="small text-truncate" style="max-width: 260px;" title="@p.DescripcionProducto">
+                                        @p.DescripcionProducto
+                                    </td>
+
+                                    <!-- ID Pallet (Nítido, Alto Contraste, Sin #) -->
+                                    <td class="text-center">
+                                        <span class="badge bg-light text-dark border border-secondary-subtle font-monospace px-2 py-1 fs-6 shadow-sm fw-bold">
+                                            @p.IdtblPallets
+                                        </span>
+                                    </td>
+
+                                    <!-- Acciones por Fila (Imprimir y Modificar - Sin Eliminar) -->
+                                    <td class="text-center">
+                                        <div class="d-flex align-items-center justify-content-center gap-1">
+                                            @if (_editingId == p.IdtblPallets)
+                                            {
+                                                @if (_guardandoEdicionId == p.IdtblPallets)
+                                                {
+                                                    <button class="btn btn-action-pallet btn-action-save" disabled title="Guardando cambios...">
+                                                        <span class="spinner-border spinner-border-sm" role="status"></span>
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <button class="btn btn-action-pallet btn-action-save" title="Guardar cambios de esta tarima" @onclick="() => GuardarEdicion(p)" disabled="@(_guardandoEdicionId > 0)">
+                                                        <i class="bi bi-check-lg fw-bold"></i>
+                                                    </button>
+                                                }
+                                                <button class="btn btn-action-pallet btn-action-cancel" title="Cancelar edición" @onclick="CancelarEdicion" disabled="@(_guardandoEdicionId > 0)">
+                                                    <i class="bi bi-x-lg"></i>
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-action-pallet btn-action-print" title="Reimprimir etiqueta Zebra" @onclick="() => ImprimirEtiquetaUsb(p.IdtblPallets)">
+                                                    <i class="bi bi-printer-fill"></i>
+                                                </button>
+                                                <button class="btn btn-action-pallet btn-action-edit" title="Modificar datos de esta tarima" @onclick="() => IniciarEdicion(p)">
+                                                    <i class="bi bi-pencil-fill"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+
+                        <!-- FILA DE CAPTURA INDIVIDUAL RÁPIDA (AL FINAL DEL LISTADO) -->
+                        @if (!_modoLote && _valeActual != null && _pallets.Count < 38)
+                        {
+                            <tr style="background: rgba(14, 165, 233, 0.08); border-top: 2px solid var(--accent-blue-start);">
+                                <!-- Contador de Nueva Fila (Sin #) -->
+                                <td class="p-2 text-center font-monospace fw-bold text-primary fs-6">
+                                    @(_pallets.Count + 1)
+                                </td>
+
+                                <!-- Hora (Editable) -->
+                                <td class="p-2 text-center">
+                                    <input type="text" id="input-nueva-hora" class="form-control form-control-sm text-center fw-bold font-monospace" 
+                                           style="max-width: 90px; margin: 0 auto;"
+                                           @bind="_nuevaHora" @bind:event="oninput" @onblur="() => _nuevaHora = NormalizarHora(_nuevaHora)" disabled="@_isSaving"
+                                           @onkeydown="HandleKeyDownNuevaFila"
+                                           placeholder="HH:mm" />
+                                </td>
+
+                                <!-- Cajas (Editable) -->
+                                <td class="p-2 text-center">
+                                    <input type="number" class="form-control form-control-sm text-center fw-bold font-monospace" 
+                                           style="max-width: 80px; margin: 0 auto;"
+                                           @bind="_nuevasCajas" @bind:event="oninput" disabled="@_isSaving"
+                                           @onkeydown="HandleKeyDownNuevaFila" />
+                                </td>
+
+                                <!-- Línea de Empaque (Selector desplegable) -->
+                                <td class="p-2 text-center">
+                                    <select class="form-select form-select-sm fw-semibold" value="@_nuevaLinea" @onchange="OnNuevaLineaChanged" @onkeydown="HandleKeyDownNuevaFila" disabled="@_isSaving">
+                                        @foreach (var l in _lineas)
+                                        {
+                                            <option value="@l.LineaEmpaque">@l.LineaEmpaque</option>
+                                        }
+                                    </select>
+                                </td>
+
+                                <!-- No. Tarima (Calculado / Bloqueado) -->
+                                <td class="p-2 text-center">
+                                    <span class="badge bg-warning bg-opacity-25 text-warning-emphasis border border-warning font-monospace px-2 py-1">
+                                        Tarima @(_pallets.Count + 1)
+                                    </span>
+                                </td>
+
+                                <!-- Lote (Heredado del vale / Bloqueado) -->
+                                <td class="p-2 text-center font-monospace small text-muted">
+                                    @(!string.IsNullOrEmpty(_valeActual.Lote) ? _valeActual.Lote : "Sin Lote")
+                                </td>
+
+                                <!-- Folio Vale (Bloqueado) -->
+                                <td class="p-2 text-center font-monospace fw-bold text-primary">
+                                    @_valeActual.FolioVale
+                                </td>
+
+                                <!-- Descripción Producto (Bloqueado) -->
+                                <td class="p-2 small text-dark fw-semibold">
+                                    @_valeActual.DescripcionProducto
+                                </td>
+
+                                <!-- ID Pallet (Nuevo / Pendiente) -->
+                                <td class="p-2 text-center">
+                                    <span class="badge bg-light text-muted border font-monospace">--</span>
+                                </td>
+
+                                <!-- Botón Guardar Rápido -->
+                                <td class="p-2 text-center">
+                                    <button class="btn btn-primary btn-sm w-100 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-1" 
+                                            @onclick="GuardarNuevoPallet" disabled="@_isSaving">
+                                        @if (_isSaving)
+                                        {
+                                            <span class="spinner-border spinner-border-sm" role="status"></span>
+                                            <span>Guardando...</span>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-plus-circle-fill"></i>
+                                            <span>Guardar</span>
+                                        }
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot style="height: 20px;">
+                        <tr><td colspan="10" style="height: 20px; border: none; padding: 0; background: transparent;"></td></tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ESPACIO DE SEGURIDAD INFERIOR (Garantiza visibilidad completa del último pallet) -->
+    <div style="height: 25px; width: 100%;"></div>
+
+</div>
+
+<!-- MODAL PARA CREACIÓN DE NUEVO VALE DE PRODUCCIÓN -->
+@if (_modalNuevoValeVisible)
+{
+    <div class="modal fade show d-block" style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0 rounded-4">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
+                        <i class="bi bi-plus-circle-fill"></i>
+                        <span>Dar de Alta Nuevo Vale de Producción</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="() => _modalNuevoValeVisible = false"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- Folio Físico del Vale (Consecutivo automático) -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small">Folio Físico del Vale:</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-receipt"></i></span>
+                            <input type="number" class="form-control fw-bold font-monospace fs-5 text-primary" 
+                                   @bind="_nuevoFolioValeInput" placeholder="Ej. 14450" autofocus />
+                        </div>
+                        <div class="form-text small text-muted">
+                            <i class="bi bi-magic text-success me-1"></i>Sugerido automáticamente con base en el último vale capturado.
+                        </div>
+                    </div>
+
+                    <!-- Fila Coordinada: Clave del Producto y Combobox de Producto -->
+                    <div class="row g-2 mb-3">
+                        <!-- Clave del Producto (Rápida con Enter) -->
+                        <div class="col-12 col-md-4">
+                            <label class="form-label fw-bold text-secondary small">Clave Producto:</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light font-monospace small"><i class="bi bi-upc-scan"></i></span>
+                                <input type="text" class="form-control fw-bold font-monospace text-uppercase text-primary" 
+                                       placeholder="Ej. E9623" 
+                                       value="@_nuevoClaveProductoInput" 
+                                       @oninput="OnNuevoClaveInput" 
+                                       @onkeydown="OnNuevoClaveKeyDown" 
+                                       @onblur="OnNuevoClaveBlur" />
+                            </div>
+                            <div class="form-text small text-muted" style="font-size: 0.72rem;">
+                                [Enter] para buscar
+                            </div>
+                        </div>
+
+                        <!-- Combobox de Productos -->
+                        <div class="col-12 col-md-8">
+                            <label class="form-label fw-bold text-secondary small">Producto a Fabricar:</label>
+                            <select class="form-select fw-semibold" value="@_nuevoProductoIdInput" @onchange="OnNuevoProductoChanged">
+                                <option value="0">-- Seleccione un Producto --</option>
+                                @foreach (var prod in _productosMaquina)
+                                {
+                                    <option value="@prod.IdtblProductos">@(string.IsNullOrWhiteSpace(prod.ClaveProducto) ? prod.DescripcionProducto : $"{prod.ClaveProducto} - {prod.DescripcionProducto}")</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-light rounded-3 small text-muted">
+                        <i class="bi bi-info-circle-fill text-primary me-1"></i>
+                        <span>El vale se vinculará automáticamente al encabezado activo de la máquina <strong>@NombreMaquinaSeleccionada</strong>.</span>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="() => _modalNuevoValeVisible = false">Cancelar</button>
+                    <button type="button" class="btn btn-success fw-bold px-3" @onclick="EjecutarCrearNuevoVale" disabled="@_isSaving">
+                        @if (_isSaving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                            <span>Creando Vale...</span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-check-circle me-1"></i><span>Crear y Activar Vale</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- MODAL PARA MODIFICACIÓN DE VALE EXISTENTE -->
+@if (_modalModificarValeVisible && _valeActual != null)
+{
+    <div class="modal fade show d-block" style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0 rounded-4">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
+                        <i class="bi bi-pencil-square"></i>
+                        <span>Modificar Vale de Producción</span>
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="() => _modalModificarValeVisible = false"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- Folio Físico del Vale -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small">Folio Físico del Vale:</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-receipt"></i></span>
+                            <input type="number" class="form-control fw-bold font-monospace fs-5 text-primary" 
+                                   @bind="_modificarFolioVale" placeholder="Ej. 14450" autofocus />
+                        </div>
+                    </div>
+
+                    <!-- Fila Coordinada: Clave del Producto y Combobox de Producto -->
+                    <div class="row g-2 mb-3">
+                        <!-- Clave del Producto (Rápida con Enter) -->
+                        <div class="col-12 col-md-4">
+                            <label class="form-label fw-bold text-secondary small">Clave Producto:</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light font-monospace small"><i class="bi bi-upc-scan"></i></span>
+                                <input type="text" class="form-control fw-bold font-monospace text-uppercase text-primary" 
+                                       placeholder="Ej. E9623" 
+                                       value="@_modificarClaveProducto" 
+                                       @oninput="OnModificarClaveInput" 
+                                       @onkeydown="OnModificarClaveKeyDown" 
+                                       @onblur="OnModificarClaveBlur" />
+                            </div>
+                            <div class="form-text small text-muted" style="font-size: 0.72rem;">
+                                [Enter] para buscar
+                            </div>
+                        </div>
+
+                        <!-- Combobox de Productos -->
+                        <div class="col-12 col-md-8">
+                            <label class="form-label fw-bold text-secondary small">Producto Asignado:</label>
+                            <select class="form-select fw-semibold" value="@_modificarIdProducto" @onchange="OnModificarProductoChanged">
+                                <option value="0">-- Seleccione un Producto --</option>
+                                @foreach (var prod in _productosMaquina)
+                                {
+                                    <option value="@prod.IdtblProductos">@(string.IsNullOrWhiteSpace(prod.ClaveProducto) ? prod.DescripcionProducto : $"{prod.ClaveProducto} - {prod.DescripcionProducto}")</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-light rounded-3 small text-muted">
+                        <i class="bi bi-info-circle-fill text-warning me-1"></i>
+                        <span>ID Registro Producción: <strong>@_valeActual.IdAutotblProduccion</strong> | Encabezado Turno: <strong>@_valeActual.IdRT_Encabezado</strong></span>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="() => _modalModificarValeVisible = false">Cancelar</button>
+                    <button type="button" class="btn btn-warning fw-bold px-3" @onclick="EjecutarModificarVale" disabled="@_isSaving">
+                        @if (_isSaving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                            <span>Guardando...</span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-check-circle me-1"></i><span>Guardar Cambios del Vale</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+<!-- MODAL PARA REIMPRESIÓN MANUAL DE ETIQUETAS -->
+@if (_modalReimpresionVisible)
+{
+    <div class="modal fade show d-block" style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content shadow-lg border-0 rounded-4">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
+                        <i class="bi bi-printer-fill"></i>
+                        <span>Reimprimir Etiqueta</span>
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="() => _modalReimpresionVisible = false"></button>
+                </div>
+                <div class="modal-body p-3">
+                    <label class="form-label small fw-bold text-secondary">ID o Folio de Pallet:</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light"><i class="bi bi-tag"></i></span>
+                        <input type="number" class="form-control fw-bold font-monospace text-center fs-5" 
+                               @bind="_folioReimpresionInput" />
+                    </div>
+                </div>
+                <div class="modal-footer bg-light p-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="() => _modalReimpresionVisible = false">Cerrar</button>
+                    <button type="button" class="btn btn-warning btn-sm fw-bold" @onclick="EjecutarReimpresionModal">
+                        <i class="bi bi-printer me-1"></i>Imprimir en USB
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- MODAL DE CONFIRMACIÓN -->
+<ConfirmModal Visible="@_confirmVisible" 
+              Titulo="Eliminar Pallet" 
+              Mensaje="@_confirmMessage" 
+              Tipo="danger" 
+              OnConfirm="ConfirmarEliminar" />
+
+<!-- TOASTS DE NOTIFICACIÓN -->
+<ToastAlert Mensaje="@_toastMessage" 
+            Tipo="@_toastType" 
+            Visible="@_toastVisible" 
+            OnClose="() => _toastVisible = false" />
+
+@code {
+    [SupplyParameterFromQuery(Name = "maquina")]
+    public int? MaquinaUrl { get; set; }
+
+    // Estado Impresora USB
+    private bool _impresoraConectada = false;
+    private bool _impresoraEnPausa = false;
+    private uint _trabajosEnCola = 0;
+    private string _impresoraNombre = "";
+    private string _impresoraMensaje = "Verificando conexión...";
+
+    // Modelos y Listas
+    private List<MaquinaDto> _maquinas = new();
+    private List<LineaEmpaqueDto> _lineas = new();
+    private List<ProductoDto> _productosMaquina = new();
+    private List<ValeDto> _valesDelTurno = new();
+    private List<ValeDto> _valesTurnoAnterior = new();
+    private List<PalletDto> _pallets = new();
+    private EncabezadoTurnoDto? _encabezadoActual;
+    private ValeDetalleDto? _valeActual;
+    private bool _esTurnoAnterior = false;
+    private bool _cargandoDatos = false;
+
+    // Lote de Pallets (1 a 10)
+    private bool _modoLote = false;
+    private List<PalletBatchItemDto> _loteItems = new();
+
+    // Filtros de Configuración
+    private int _noMaquinaSeleccionada = 0;
+    private int _turnoSeleccionado = 1;
+    private DateTime _fechaSeleccionada = DateTime.Today;
+    private System.Threading.Timer? _shiftCheckTimer;
+
+    // Selección de Folio Vale Activo
+    private int _folioValeSeleccionado = 0;
+
+    // Estado del Operador
+    private string _noEmpleadoInput = "";
+    private string _nombreOperadorActivo = "";
+    private bool _operadorValido = false;
+
+    // Fila de Captura Individual Rápida
+    private string _nuevaHora = "";
+    private int _nuevasCajas = 63;
+    private string _nuevaLinea = "01";
+    private int _cajasPorPallet = 63;
+
+    // Estado de Edición y Eliminación
+    private int _editingId = 0;
+    private int _palletIdEliminar = 0;
+    private string _confirmMessage = "";
+    private int _ultimoIdGuardado = 0;
+    private bool _isSaving = false;
+    private DateTime _ultimoGuardadoMomento = DateTime.MinValue;
+    private HashSet<int> _loteFilasConConflicto = new();
+    private HashSet<int> _palletsConConflicto = new();
+    private int _guardandoEdicionId = 0;
+
+    // Modales
+    private bool _modalNuevoValeVisible = false;
+    private int? _nuevoFolioValeInput = null;
+    private int _nuevoProductoIdInput = 0;
+    private string _nuevoClaveProductoInput = "";
+
+    private bool _modalModificarValeVisible = false;
+    private int? _modificarFolioVale = null;
+    private int _modificarIdProducto = 0;
+    private string _modificarClaveProducto = "";
+
+    private bool _modalReimpresionVisible = false;
+    private int _folioReimpresionInput = 0;
+
+    // Toast
+    private bool _toastVisible = false;
+    private string _toastMessage = "";
+    private string _toastType = "success";
+    private bool _confirmVisible = false;
+
+    // Cálculos y Helpers
+    private int TotalCajasAcumuladas => _pallets.Sum(p => p.TotalCajas);
+    private string UltimaTarimaTexto
+    {
+        get
+        {
+            var p = _pallets.OrderByDescending(x => x.IdtblPallets).FirstOrDefault();
+            return p != null ? (!string.IsNullOrEmpty(p.NoTarima) ? p.NoTarima : $"{p.IdtblPallets}") : "--";
+        }
+    }
+
+        // --- HELPER DE NORMALIZACIÓN DE HORA (Acepta 0810, 810, 08:10, 8) ---
+    private static string NormalizarLinea(string? linea)
+    {
+        if (string.IsNullOrWhiteSpace(linea)) return "01";
+        string limpio = linea.Trim();
+        if (int.TryParse(limpio, out int num))
+        {
+            return num.ToString("D2");
+        }
+        return limpio.Length >= 2 ? limpio : limpio.PadLeft(2, '0');
+    }
+
+    private async Task EnfocarNuevaHoraAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("eval", "var el = document.getElementById('input-nueva-hora'); if(el){ el.focus(); el.select(); }");
+        }
+        catch { }
+    }
+
+    private string NormalizarHora(string? input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return DateTime.Now.ToString("HH:mm");
+        var s = input.Trim();
+        if (s.Contains(":"))
+        {
+            var parts = s.Split(':');
+            if (parts.Length == 2 && int.TryParse(parts[0], out int h) && int.TryParse(parts[1], out int m))
+            {
+                if (h >= 0 && h <= 23 && m >= 0 && m <= 59)
+                    return $"{h:D2}:{m:D2}";
+            }
+        }
+        string digits = new string(s.Where(char.IsDigit).ToArray());
+        if (digits.Length == 4)
+        {
+            if (int.TryParse(digits.Substring(0, 2), out int h) && int.TryParse(digits.Substring(2, 2), out int m))
+            {
+                if (h >= 0 && h <= 23 && m >= 0 && m <= 59)
+                    return $"{h:D2}:{m:D2}";
+            }
+        }
+        else if (digits.Length == 3)
+        {
+            if (int.TryParse(digits.Substring(0, 1), out int h) && int.TryParse(digits.Substring(1, 2), out int m))
+            {
+                if (h >= 0 && h <= 23 && m >= 0 && m <= 59)
+                    return $"{h:D2}:{m:D2}";
+            }
+        }
+        else if (digits.Length == 1 || digits.Length == 2)
+        {
+            if (int.TryParse(digits, out int h) && h >= 0 && h <= 23)
+            {
+                return $"{h:D2}:00";
+            }
+        }
+        return DateTime.Now.ToString("HH:mm");
+    }
+
+    // --- NAVEGACIÓN RÁPIDA CON ENTER ENTRE HORAS DE LOTE ---
+    private async Task OnLoteHoraKeyDown(KeyboardEventArgs e, int filaIndex)
+    {
+        if (e.Key == "Enter")
+        {
+            var item = _loteItems.FirstOrDefault(x => x.FilaIndex == filaIndex);
+            if (item != null)
+            {
+                item.Hora = NormalizarHora(item.Hora);
+            }
+
+            if (filaIndex < _loteItems.Count)
+            {
+                try
+                {
+                    await Task.Delay(20);
+                    await JS.InvokeVoidAsync("eval", $"var el = document.getElementById('lote-hora-{filaIndex + 1}'); if(el){{ el.focus(); el.select(); }}");
+                }
+                catch { }
+            }
+            else
+            {
+                try
+                {
+                    await Task.Delay(20);
+                    await JS.InvokeVoidAsync("eval", "var el = document.getElementById('btn-guardar-lote'); if(el) el.focus();");
+                }
+                catch { }
+            }
+        }
+    }
+
+    // --- SINCRONIZACIÓN Y ENRIQUECIMIENTO DE CLAVES DE PRODUCTO ---
+    private void EnriquecerClavesProductosMemoria()
+    {
+        if (_productosMaquina == null || _productosMaquina.Count == 0) return;
+
+        var todosVales = new List<ValeDto>(_valesDelTurno);
+        todosVales.AddRange(_valesTurnoAnterior);
+        if (_valeActual != null && !string.IsNullOrWhiteSpace(_valeActual.ClaveProducto))
+        {
+            todosVales.Add(new ValeDto
+            {
+                FolioVale = _valeActual.FolioVale,
+                ClaveProducto = _valeActual.ClaveProducto,
+                DescripcionProducto = _valeActual.DescripcionProducto,
+                IdtblProductos = _valeActual.IdtblProductos
+            });
+        }
+
+        foreach (var prod in _productosMaquina)
+        {
+            if (string.IsNullOrWhiteSpace(prod.ClaveProducto))
+            {
+                var vMatch = todosVales.FirstOrDefault(v =>
+                    !string.IsNullOrWhiteSpace(v.ClaveProducto) &&
+                    (v.IdtblProductos == prod.IdtblProductos ||
+                     (!string.IsNullOrWhiteSpace(v.DescripcionProducto) &&
+                      v.DescripcionProducto.Trim().Equals(prod.DescripcionProducto.Trim(), StringComparison.OrdinalIgnoreCase))));
+
+                if (vMatch != null)
+                {
+                    prod.ClaveProducto = vMatch.ClaveProducto.Trim();
+                }
+            }
+        }
+    }
+
+    // --- SINCRONIZACIÓN BIDIRECCIONAL: NUEVO VALE ---
+    private void OnNuevoClaveInput(ChangeEventArgs e)
+    {
+        _nuevoClaveProductoInput = e.Value?.ToString()?.Trim() ?? "";
+    }
+
+    private void OnNuevoClaveKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            SincronizarNuevoProductoPorClave(_nuevoClaveProductoInput);
+        }
+    }
+
+    private void OnNuevoClaveBlur()
+    {
+        SincronizarNuevoProductoPorClave(_nuevoClaveProductoInput);
+    }
+
+    private void SincronizarNuevoProductoPorClave(string clave)
+    {
+        if (string.IsNullOrWhiteSpace(clave)) return;
+        EnriquecerClavesProductosMemoria();
+
+        // 1. Búsqueda directa por ClaveProducto
+        var prod = _productosMaquina.FirstOrDefault(p =>
+            !string.IsNullOrWhiteSpace(p.ClaveProducto) &&
+            p.ClaveProducto.Trim().Equals(clave.Trim(), StringComparison.OrdinalIgnoreCase));
+
+        // 2. Búsqueda en vales del turno actual o anterior que contienen la clave
+        if (prod == null)
+        {
+            var vale = _valesDelTurno.Concat(_valesTurnoAnterior)
+                .FirstOrDefault(v => !string.IsNullOrWhiteSpace(v.ClaveProducto) &&
+                                     v.ClaveProducto.Trim().Equals(clave.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (vale != null)
+            {
+                prod = _productosMaquina.FirstOrDefault(p => p.IdtblProductos == vale.IdtblProductos)
+                    ?? _productosMaquina.FirstOrDefault(p => p.DescripcionProducto.Trim().Equals(vale.DescripcionProducto.Trim(), StringComparison.OrdinalIgnoreCase));
+                if (prod != null && string.IsNullOrWhiteSpace(prod.ClaveProducto))
+                {
+                    prod.ClaveProducto = vale.ClaveProducto.Trim();
+                }
+            }
+        }
+
+        // 3. Búsqueda por texto contenido en descripción
+        if (prod == null)
+        {
+            prod = _productosMaquina.FirstOrDefault(p =>
+                p.DescripcionProducto.IndexOf(clave.Trim(), StringComparison.OrdinalIgnoreCase) >= 0);
+        }
+
+        if (prod != null)
+        {
+            _nuevoProductoIdInput = prod.IdtblProductos;
+            _nuevoClaveProductoInput = !string.IsNullOrWhiteSpace(prod.ClaveProducto) ? prod.ClaveProducto : clave.Trim().ToUpper();
+            MostrarToast($"Producto seleccionado: {prod.DescripcionProducto}", "success");
+        }
+        else
+        {
+            MostrarToast($"Clave '{clave}' no encontrada en el catálogo de esta máquina.", "warning");
+        }
+    }
+
+    private void OnNuevoProductoChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int idProd))
+        {
+            _nuevoProductoIdInput = idProd;
+            EnriquecerClavesProductosMemoria();
+            var prod = _productosMaquina.FirstOrDefault(p => p.IdtblProductos == idProd);
+            if (prod != null && !string.IsNullOrWhiteSpace(prod.ClaveProducto))
+            {
+                _nuevoClaveProductoInput = prod.ClaveProducto;
+            }
+            else
+            {
+                var vale = _valesDelTurno.Concat(_valesTurnoAnterior).FirstOrDefault(v => v.IdtblProductos == idProd);
+                _nuevoClaveProductoInput = vale?.ClaveProducto ?? "";
+            }
+        }
+    }
+
+    // --- SINCRONIZACIÓN BIDIRECCIONAL: MODIFICAR VALE ---
+    private void OnModificarClaveInput(ChangeEventArgs e)
+    {
+        _modificarClaveProducto = e.Value?.ToString()?.Trim() ?? "";
+    }
+
+    private void OnModificarClaveKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            SincronizarModificarProductoPorClave(_modificarClaveProducto);
+        }
+    }
+
+    private void OnModificarClaveBlur()
+    {
+        SincronizarModificarProductoPorClave(_modificarClaveProducto);
+    }
+
+    private void SincronizarModificarProductoPorClave(string clave)
+    {
+        if (string.IsNullOrWhiteSpace(clave)) return;
+        EnriquecerClavesProductosMemoria();
+
+        // 1. Búsqueda directa por ClaveProducto
+        var prod = _productosMaquina.FirstOrDefault(p =>
+            !string.IsNullOrWhiteSpace(p.ClaveProducto) &&
+            p.ClaveProducto.Trim().Equals(clave.Trim(), StringComparison.OrdinalIgnoreCase));
+
+        // 2. Búsqueda en vales del turno actual o anterior que contienen la clave
+        if (prod == null)
+        {
+            var vale = _valesDelTurno.Concat(_valesTurnoAnterior)
+                .FirstOrDefault(v => !string.IsNullOrWhiteSpace(v.ClaveProducto) &&
+                                     v.ClaveProducto.Trim().Equals(clave.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (vale != null)
+            {
+                prod = _productosMaquina.FirstOrDefault(p => p.IdtblProductos == vale.IdtblProductos)
+                    ?? _productosMaquina.FirstOrDefault(p => p.DescripcionProducto.Trim().Equals(vale.DescripcionProducto.Trim(), StringComparison.OrdinalIgnoreCase));
+                if (prod != null && string.IsNullOrWhiteSpace(prod.ClaveProducto))
+                {
+                    prod.ClaveProducto = vale.ClaveProducto.Trim();
+                }
+            }
+        }
+
+        // 3. Búsqueda por texto contenido en descripción
+        if (prod == null)
+        {
+            prod = _productosMaquina.FirstOrDefault(p =>
+                p.DescripcionProducto.IndexOf(clave.Trim(), StringComparison.OrdinalIgnoreCase) >= 0);
+        }
+
+        if (prod != null)
+        {
+            _modificarIdProducto = prod.IdtblProductos;
+            _modificarClaveProducto = !string.IsNullOrWhiteSpace(prod.ClaveProducto) ? prod.ClaveProducto : clave.Trim().ToUpper();
+            MostrarToast($"Producto seleccionado: {prod.DescripcionProducto}", "success");
+        }
+        else
+        {
+            MostrarToast($"Clave '{clave}' no encontrada en el catálogo de esta máquina.", "warning");
+        }
+    }
+
+    private void OnModificarProductoChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int idProd))
+        {
+            _modificarIdProducto = idProd;
+            EnriquecerClavesProductosMemoria();
+            var prod = _productosMaquina.FirstOrDefault(p => p.IdtblProductos == idProd);
+            if (prod != null && !string.IsNullOrWhiteSpace(prod.ClaveProducto))
+            {
+                _modificarClaveProducto = prod.ClaveProducto;
+            }
+            else
+            {
+                var vale = _valesDelTurno.Concat(_valesTurnoAnterior).FirstOrDefault(v => v.IdtblProductos == idProd);
+                _modificarClaveProducto = vale?.ClaveProducto ?? "";
+            }
+        }
+    }
+    private int UltimoFolioPallet => _pallets.OrderByDescending(x => x.IdtblPallets).Select(x => x.IdtblPallets).FirstOrDefault();
+
+        private string NombreMaquinaSeleccionada
+    {
+        get
+        {
+            if (_noMaquinaSeleccionada <= 0)
+            {
+                return "⚠️ Sin Asignar";
+            }
+            var m = _maquinas.FirstOrDefault(x => x.NoMaquina == _noMaquinaSeleccionada);
+            return FormatearNombreMaquina(_noMaquinaSeleccionada, m?.NombreMaquina ?? "");
+        }
+    }
+private static string FormatearNombreMaquina(int noMaquina, string nombre)
+    {
+        return noMaquina switch
+        {
+            9 => "TXWW1 (Línea 1)",
+            16 => "TXWW2 (Línea 2)",
+            53 => "TXWW3 (Línea 3)",
+            54 => "TXWW4 (Línea 4)",
+            55 => "TXWW5 (Línea 5)",
+            67 => "TXWW6 (Línea 6)",
+            70 => "TXWW7 (Línea 7)",
+            11 => "POCKET (Pocket Wipes)",
+            _ => !string.IsNullOrWhiteSpace(nombre) ? nombre : $"Máquina {noMaquina}"
+        };
+    }
+
+    private string TripulacionActual => _encabezadoActual != null && !string.IsNullOrEmpty(_encabezadoActual.Tripulacion) 
+        ? _encabezadoActual.Tripulacion 
+        : (_cargandoDatos ? "..." : "-");
+
+    private string NombreSupervisorActual => _encabezadoActual != null && !string.IsNullOrEmpty(_encabezadoActual.NombreSupervisor) 
+        ? _encabezadoActual.NombreSupervisor 
+        : (_cargandoDatos ? "Consultando turno..." : "Sin Turno Activo");
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (MaquinaUrl.HasValue && MaquinaUrl.Value > 0)
+        {
+            _noMaquinaSeleccionada = MaquinaUrl.Value;
+        }
+
+        _nuevaHora = DateTime.Now.ToString("HH:mm");
+        CalcularTurnoYFechaPlanta();
+
+        if (_noMaquinaSeleccionada > 0)
+        {
+            _cargandoDatos = true;
+            try
+            {
+                // Carga ultrarrápida en paralelo: catálogos cacheados en memoria (0ms) + datos activos de producción
+                var tMaquinas = CatalogCache.ObtenerMaquinasAsync();
+                var tLineas = CatalogCache.ObtenerLineasEmpaqueAsync(_noMaquinaSeleccionada);
+                var tProductos = CatalogCache.ObtenerProductosPorMaquinaAsync(_noMaquinaSeleccionada);
+                var tTurno = CargarTurnoYValesAsync();
+
+                await Task.WhenAll(tMaquinas, tLineas, tProductos, tTurno);
+
+                _maquinas = await tMaquinas;
+                _lineas = await tLineas;
+                if (_lineas.Count > 0 && string.IsNullOrEmpty(_nuevaLinea))
+                {
+                    _nuevaLinea = _lineas.First().LineaEmpaque;
+                }
+                _productosMaquina = await tProductos;
+                if (_productosMaquina.Count > 0 && _nuevoProductoIdInput == 0)
+                {
+                    _nuevoProductoIdInput = _productosMaquina.First().IdtblProductos;
+                }
+            }
+            catch (Exception ex)
+            {
+                MostrarToast($"Error al cargar datos de producción iniciales: {ex.Message}", "danger");
+            }
+            finally
+            {
+                _cargandoDatos = false;
+            }
+        }
+        else
+        {
+            try
+            {
+                _maquinas = await CatalogCache.ObtenerMaquinasAsync();
+            }
+            catch { }
+        }
+        // Monitor en segundo plano para actualizar el turno en caliente (cada 20 min)
+        _shiftCheckTimer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await VerificarCambioTurnoPeriodicoAsync();
+            });
+        }, null, TimeSpan.FromMinutes(20), TimeSpan.FromMinutes(20));
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // 0. SincronizaciÃ³n de Servidor Central: Mantener en localStorage la IP activa del host actual
+            try
+            {
+                string currentHost = new Uri(Navigation.BaseUri).Host;
+                if (!string.IsNullOrWhiteSpace(currentHost) &&
+                    !string.Equals(currentHost, "localhost", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(currentHost, "127.0.0.1", StringComparison.OrdinalIgnoreCase))
+                {
+                    await JS.InvokeVoidAsync("eval", $"try {{ localStorage.setItem('PalletsWW_ServerIp', '{currentHost}'); }} catch(e) {{}}");
+                }
+            }
+            catch { }
+            if (!MaquinaUrl.HasValue || MaquinaUrl.Value <= 0)
+            {
+                int mDetected = 0;
+                try
+                {
+                    var mVal = await JS.InvokeAsync<string>("eval", @"(function() {
+                        var m = document.cookie.match(/(?:^|;\s*)PalletsWW_Maquina=([^;]+)/);
+                        if (m && parseInt(m[1]) > 0) return m[1];
+                        return localStorage.getItem('PalletsWW_MaquinaId') || localStorage.getItem('pallets_ww_maquina') || '';
+                    })()");
+
+                    if (!string.IsNullOrWhiteSpace(mVal) && int.TryParse(mVal, out int mFast) && mFast > 0)
+                    {
+                        mDetected = mFast;
+                    }
+                }
+                catch { }
+
+                if (mDetected <= 0)
+                {
+                    try
+                    {
+                        var config = await JS.InvokeAsync<Configuracion.MachineConfigResult>("ZebraPrint.getMachineConfig", 1);
+                        if (config != null && config.MachineId > 0)
+                        {
+                            mDetected = config.MachineId;
+                        }
+                    }
+                    catch { }
+                }
+
+                if (mDetected > 0)
+                {
+                    _noMaquinaSeleccionada = mDetected;
+                    try
+                    {
+                        await JS.InvokeVoidAsync("eval", $"document.cookie = 'PalletsWW_Maquina={_noMaquinaSeleccionada}; path=/; max-age=315360000; SameSite=Lax';");
+                        Navigation.NavigateTo($"/?maquina={_noMaquinaSeleccionada}", replace: true);
+                        return;
+                    }
+                    catch { }
+                }
+                else
+                {
+                    _valesDelTurno = new();
+                    _valesTurnoAnterior = new();
+                    _pallets = new();
+                    _encabezadoActual = null;
+                    MostrarToast("Terminal sin máquina asignada. Ingrese a Configuración para asignar la línea.", "warning");
+                }
+            }
+            else
+            {
+                try
+                {
+                    await JS.InvokeVoidAsync("eval", $"document.cookie = 'PalletsWW_Maquina={_noMaquinaSeleccionada}; path=/; max-age=315360000; SameSite=Lax';");
+                }
+                catch { }
+            }
+
+            // Despachar verificación de hardware Zebra USB en segundo plano para no demorar la interfaz
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(100);
+                await InvokeAsync(async () =>
+                {
+                    await VerificarImpresoraUsbAsync();
+                    StateHasChanged();
+                });
+            });
+
+            await ScrollTablaAlFinal();
+        }
+    }
+private static (int Turno, DateTime Fecha) ObtenerTurnoYFechaPlantaActual()
+    {
+        var ahora = DateTime.Now;
+        var horaMin = ahora.TimeOfDay;
+
+        if (horaMin >= new TimeSpan(7, 0, 0) && horaMin < new TimeSpan(15, 0, 0))
+        {
+            return (1, ahora.Date);
+        }
+        else if (horaMin >= new TimeSpan(15, 0, 0) && horaMin < new TimeSpan(23, 0, 0))
+        {
+            return (2, ahora.Date);
+        }
+        else
+        {
+            var f = horaMin < new TimeSpan(7, 0, 0) ? ahora.Date.AddDays(-1) : ahora.Date;
+            return (3, f);
+        }
+    }
+
+    private void CalcularTurnoYFechaPlanta()
+    {
+        var (t, f) = ObtenerTurnoYFechaPlantaActual();
+        _turnoSeleccionado = t;
+        _fechaSeleccionada = f;
+    }
+
+    private async Task VerificarCambioTurnoPeriodicoAsync()
+    {
+        if (_cargandoDatos || _isSaving || _guardandoEdicionId > 0 || _editingId > 0)
+        {
+            return;
+        }
+
+        // Si hay modales abiertos o dilogo de confirmacin, no interrumpir al operador
+        if (_modalNuevoValeVisible || _modalModificarValeVisible || _modalReimpresionVisible || _confirmVisible)
+        {
+            return;
+        }
+
+        // Si el operador modific el campo de cajas en la captura rpida respecto al estndar, no interrumpir
+        if (_nuevasCajas > 0 && _nuevasCajas != _cajasPorPallet)
+        {
+            return;
+        }
+
+        var (turnoEsperado, fechaEsperada) = ObtenerTurnoYFechaPlantaActual();
+
+        if (turnoEsperado != _turnoSeleccionado || fechaEsperada != _fechaSeleccionada)
+        {
+            _turnoSeleccionado = turnoEsperado;
+            _fechaSeleccionada = fechaEsperada;
+            _esTurnoAnterior = false;
+            _folioValeSeleccionado = 0;
+            _valeActual = null;
+            _pallets.Clear();
+
+            await CargarTurnoYValesAsync();
+            StateHasChanged();
+        }
+    }
+
+    private static string ObtenerRangoTurno(int turno)
+    {
+        return turno switch
+        {
+            1 => "07:00 - 15:00",
+            2 => "15:00 - 23:00",
+            3 => "23:00 - 07:00",
+            _ => "--:-- - --:--"
+        };
+    }
+
+    private async Task CargarProductosMaquinaAsync()
+    {
+        if (_noMaquinaSeleccionada <= 0) { _productosMaquina = new(); return; }
+        try
+        {
+            _productosMaquina = await CatalogCache.ObtenerProductosPorMaquinaAsync(_noMaquinaSeleccionada);
+            if (_productosMaquina.Count > 0 && _nuevoProductoIdInput == 0)
+            {
+                _nuevoProductoIdInput = _productosMaquina.First().IdtblProductos;
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarToast($"Error al cargar catálogo de productos: {ex.Message}", "danger");
+        }
+    }
+
+    private async Task EnriquecerTarimasValesMemoriaAsync()
+    {
+        bool huboCambio = false;
+        foreach (var v in _valesTurnoAnterior.Concat(_valesDelTurno).ToList())
+        {
+            if (v.TotalTarimas == 0 && v.FolioVale > 0 && v.IdRT_Encabezado > 0)
+            {
+                try
+                {
+                    var pList = await PalletsService.ObtenerPalletsPorValeAsync(v.FolioVale, v.IdRT_Encabezado);
+                    if (pList != null && pList.Count > 0)
+                    {
+                        v.TotalTarimas = pList.Count;
+                        huboCambio = true;
+                    }
+                }
+                catch { }
+            }
+        }
+        if (huboCambio)
+        {
+            StateHasChanged();
+        }
+    }
+
+    private async Task CargarTurnoYValesAsync()
+    {
+        if (_noMaquinaSeleccionada <= 0) { _valesDelTurno = new(); _valesTurnoAnterior = new(); _pallets = new(); _encabezadoActual = null; return; }
+        try
+        {
+            _encabezadoActual = await ValesService.ObtenerEncabezadoCompletoAsync(_noMaquinaSeleccionada, _turnoSeleccionado, _fechaSeleccionada);
+
+            Task<List<ValeDto>> tValesActivos;
+            if (_encabezadoActual != null && _encabezadoActual.Encontrado && _encabezadoActual.IdRT_Encabezado > 0)
+            {
+                tValesActivos = ValesService.ObtenerActivosAsync(_noMaquinaSeleccionada, _turnoSeleccionado, _fechaSeleccionada, _encabezadoActual.IdRT_Encabezado);
+            }
+            else
+            {
+                tValesActivos = ValesService.ObtenerActivosAsync(_noMaquinaSeleccionada, _turnoSeleccionado, _fechaSeleccionada);
+            }
+
+            var tValesAnteriores = ValesService.ObtenerTurnoAnteriorAsync(_noMaquinaSeleccionada, _turnoSeleccionado, _fechaSeleccionada);
+
+            await Task.WhenAll(tValesActivos, tValesAnteriores);
+
+            _valesDelTurno = await tValesActivos;
+            _valesTurnoAnterior = await tValesAnteriores;
+
+            EnriquecerClavesProductosMemoria();
+
+            if (_valesDelTurno.Count > 0)
+            {
+                if (_esTurnoAnterior && _valesTurnoAnterior.Any(v => v.FolioVale == _folioValeSeleccionado))
+                {
+                    // Si el operador haba seleccionado un vale del turno anterior explcitamente, lo respetamos
+                    var valeAnt = _valesTurnoAnterior.First(v => v.FolioVale == _folioValeSeleccionado);
+                    await SeleccionarVale(valeAnt.FolioVale, valeAnt.IdRT_Encabezado);
+                }
+                else
+                {
+                    var valeElegido = _valesDelTurno.FirstOrDefault(v => v.FolioVale == _folioValeSeleccionado) ?? _valesDelTurno.First();
+                    _esTurnoAnterior = false;
+                    _folioValeSeleccionado = valeElegido.FolioVale;
+                    await SeleccionarVale(valeElegido.FolioVale, valeElegido.IdRT_Encabezado);
+                }
+            }
+            else if (_esTurnoAnterior && _valesTurnoAnterior.Any(v => v.FolioVale == _folioValeSeleccionado))
+            {
+                // El operador seleccion explcitamente un vale del turno anterior
+                var valeAnt = _valesTurnoAnterior.First(v => v.FolioVale == _folioValeSeleccionado);
+                await SeleccionarVale(valeAnt.FolioVale, valeAnt.IdRT_Encabezado);
+            }
+            else
+            {
+                // NO auto-seleccionar turno anterior por default. Queda limpio mostrando mensaje informativo.
+                _esTurnoAnterior = false;
+                _folioValeSeleccionado = 0;
+                _valeActual = null;
+                _pallets.Clear();
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarToast($"Error al cargar turno y vales: {ex.Message}", "danger");
+        }
+    }
+
+    private async Task SeleccionarValeDirectoAsync(int folioVale)
+    {
+        _esTurnoAnterior = false;
+        _folioValeSeleccionado = folioVale;
+        int idEnc = _encabezadoActual?.IdRT_Encabezado ?? 0;
+        await SeleccionarVale(folioVale, idEnc);
+    }
+
+    private async Task SeleccionarValeTurnoAnteriorAsync(ValeDto vale)
+    {
+        _esTurnoAnterior = true;
+        _folioValeSeleccionado = vale.FolioVale;
+        int idEnc = vale.IdRT_Encabezado > 0 ? vale.IdRT_Encabezado : (_encabezadoActual?.IdRT_Encabezado ?? 0);
+        await SeleccionarVale(vale.FolioVale, idEnc);
+    }
+
+    private async Task SeleccionarVale(int folioVale, int idEncabezado)
+    {
+        try
+        {
+            var tDetalle = ValesService.ObtenerDetalleAsync(folioVale, idEncabezado);
+            var tPallets = PalletsService.ObtenerPalletsPorValeAsync(folioVale, idEncabezado);
+
+            await Task.WhenAll(tDetalle, tPallets);
+
+            _valeActual = await tDetalle;
+            _pallets = await tPallets ?? new();
+
+            if (_valeActual != null)
+            {
+                _cajasPorPallet = _valeActual.CajasPorPallet > 0 ? _valeActual.CajasPorPallet : 63;
+                _nuevasCajas = _cajasPorPallet;
+
+                GenerarLoteItems(_loteItems.Count > 0 ? _loteItems.Count : 3);
+                await ScrollTablaAlFinal();
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarToast($"Error al seleccionar vale: {ex.Message}", "danger");
+        }
+    }
+
+    private void SetModoCaptura(bool modoLote)
+    {
+        // Desactivado temporalmente por administración
+        _modoLote = false;
+    }
+
+    private void GenerarLoteItems(int cantidad)
+    {
+        cantidad = Math.Clamp(cantidad, 1, 10);
+        int cajasDefecto = _cajasPorPallet > 0 ? _cajasPorPallet : 63;
+        string lineaDefecto = !string.IsNullOrEmpty(_nuevaLinea) ? _nuevaLinea : (_lineas.FirstOrDefault()?.LineaEmpaque ?? "01");
+        
+        _loteItems.Clear();
+        var baseTime = DateTime.Now;
+
+        for (int i = 0; i < cantidad; i++)
+        {
+            var itemTime = baseTime.AddMinutes(i);
+            _loteItems.Add(new PalletBatchItemDto
+            {
+                FilaIndex = i + 1,
+                TotalCajas = cajasDefecto,
+                Hora = itemTime.ToString("HH:mm"),
+                Linea = lineaDefecto
+            });
+        }
+    }
+
+    private void AgregarFilaLote()
+    {
+        if (_loteItems.Count >= 10)
+        {
+            MostrarToast("El lote ha alcanzado el límite máximo recomendado de 10 tarimas.", "warning");
+            return;
+        }
+
+        int index = _loteItems.Count + 1;
+        int cajasDefecto = _cajasPorPallet > 0 ? _cajasPorPallet : 63;
+        string lineaDefecto = !string.IsNullOrEmpty(_nuevaLinea) ? _nuevaLinea : (_lineas.FirstOrDefault()?.LineaEmpaque ?? "01");
+        var baseTime = _loteItems.Count > 0 && TimeSpan.TryParse(_loteItems.Last().Hora, out var lastTs)
+            ? DateTime.Today.Add(lastTs).AddMinutes(1)
+            : DateTime.Now;
+
+        _loteItems.Add(new PalletBatchItemDto
+        {
+            FilaIndex = index,
+            TotalCajas = cajasDefecto,
+            Hora = baseTime.ToString("HH:mm"),
+            Linea = lineaDefecto
+        });
+    }
+
+    private void EliminarFilaLote(int filaIndex)
+    {
+        _loteItems.RemoveAll(x => x.FilaIndex == filaIndex);
+        for (int i = 0; i < _loteItems.Count; i++)
+        {
+            _loteItems[i].FilaIndex = i + 1;
+        }
+    }
+
+    private async Task OnKeyDownEmpleadoAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await ValidarOperadorAsync();
+        }
+    }
+
+    private async Task ValidarOperadorAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_noEmpleadoInput))
+        {
+            _nombreOperadorActivo = "";
+            _operadorValido = false;
+            return;
+        }
+
+        if (int.TryParse(_noEmpleadoInput, out int noEmp) && noEmp > 0)
+        {
+            var emp = await CatalogosService.ValidarOperadorRapidoAsync(noEmp);
+            if (emp != null && !string.IsNullOrEmpty(emp.Nombre))
+            {
+                _nombreOperadorActivo = emp.Nombre;
+                _operadorValido = true;
+            }
+            else
+            {
+                _nombreOperadorActivo = "Número no registrado";
+                _operadorValido = false;
+            }
+        }
+        else
+        {
+            _nombreOperadorActivo = "Número inválido";
+            _operadorValido = false;
+        }
+    }
+
+    private void OnNuevaLineaChanged(ChangeEventArgs e)
+    {
+        var val = e.Value?.ToString();
+        if (!string.IsNullOrWhiteSpace(val))
+        {
+            _nuevaLinea = val.Trim();
+        }
+    }
+    private async Task HandleKeyDownNuevaFila(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            if (_isSaving) return;
+            await GuardarNuevoPallet();
+        }
+    }
+
+    private async Task GuardarNuevoPallet()
+    {
+        if (_noMaquinaSeleccionada <= 0) { MostrarToast("No se puede guardar: Terminal sin máquina asignada. Ingrese a Configuración.", "danger"); return; }
+        // 1. Candado atómico anti-doble enter / anti-doble clic (cooldown 1.5s)
+        if (_isSaving || (DateTime.Now - _ultimoGuardadoMomento).TotalMilliseconds < 1500)
+        {
+            return;
+        }
+        _isSaving = true;
+        _ultimoGuardadoMomento = DateTime.Now;
+
+        try
+        {
+            if (_valeActual == null)
+            {
+                MostrarToast("Seleccione o cree un vale de producción antes de capturar pallets.", "warning");
+                return;
+            }
+
+            if (_pallets.Count >= 38)
+            {
+                MostrarToast("Límite alcanzado: Este vale físico ya tiene 38 pallets registrados.", "danger");
+                return;
+            }
+
+            if (!_operadorValido || !int.TryParse(_noEmpleadoInput, out int noEmp) || noEmp <= 0)
+            {
+                MostrarToast("Debe ingresar un número de empleado de operador válido.", "warning");
+                return;
+            }
+
+            if (_nuevasCajas <= 0)
+            {
+                MostrarToast("La cantidad de cajas por tarima debe ser mayor a 0.", "warning");
+                return;
+            }
+
+            string horaNorm = NormalizarHora(_nuevaHora);
+            _nuevaHora = horaNorm;
+            string lineaNorm = NormalizarLinea(_nuevaLinea);
+            _nuevaHora = horaNorm;
+
+            // Candado anti-duplicidad en captura individual: se permite la misma hora si la línea de empaque es distinta
+            if (_pallets.Any(p => NormalizarHora(p.Hora) == horaNorm && NormalizarLinea(p.LineaEmpaque) == lineaNorm))
+            {
+                MostrarToast($"Operación cancelada: Ya existe una tarima registrada a las {horaNorm} en la línea {lineaNorm} para este vale. Verifique la hora o la línea.", "warning");
+                return;
+            }
+
+            int encId = _valeActual.IdRT_Encabezado > 0 ? _valeActual.IdRT_Encabezado : (_encabezadoActual?.IdRT_Encabezado ?? 0);
+
+            var insertDto = new PalletInsertDto
+            {
+                FolioVale = _valeActual.FolioVale,
+                IdtblProductos = _valeActual.IdtblProductos,
+                TotalCajas = _nuevasCajas,
+                Hora = horaNorm,
+                IdRT_Encabezado = encId,
+                NoEmpCapturo = noEmp,
+                Linea = _nuevaLinea
+            };
+
+            var res = await PalletsService.InsertarPalletAsync(insertDto);
+            if (res.Exitoso)
+            {
+                _ultimoIdGuardado = res.IdtblPallets;
+
+                // Enviar inmediatamente a la impresora Zebra USB local de la PC cliente
+                await ImprimirEtiquetaUsb(res.IdtblPallets, res.CodigoZpl);
+
+                _pallets = await PalletsService.ObtenerPalletsPorValeAsync(_valeActual.FolioVale, encId);
+                _valesDelTurno = await ValesService.ObtenerActivosAsync(_noMaquinaSeleccionada, _turnoSeleccionado, _fechaSeleccionada, _encabezadoActual?.IdRT_Encabezado);
+                if (_esTurnoAnterior)
+                {
+                    _valesTurnoAnterior = (await ValesService.ObtenerTurnoAnteriorAsync(_noMaquinaSeleccionada, _turnoSeleccionado, _fechaSeleccionada)).ToList();
+                }
+
+                _nuevaHora = DateTime.Now.ToString("HH:mm");
+
+                MostrarToast($"Pallet {res.IdtblPallets} guardado y enviado a impresora Zebra USB.", "success");
+                StateHasChanged();
+                await Task.Delay(60);
+                await ScrollTablaAlFinal();
+            }
+            else
+            {
+                MostrarToast($"Error al guardar: {res.Mensaje}", "danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarToast($"Error inesperado: {ex.Message}", "danger");
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+    private async Task GuardarLotePallets()
+    {
+        if (_noMaquinaSeleccionada <= 0) { MostrarToast("No se puede guardar: Terminal sin máquina asignada. Ingrese a Configuración.", "danger"); return; }
+        if (_valeActual == null)
+        {
+            MostrarToast("Seleccione un vale de producción antes de capturar.", "warning");
+            return;
+        }
+
+        if (_loteItems.Count == 0)
+        {
+            MostrarToast("Debe tener al menos una tarima configurada en el lote.", "warning");
+            return;
+        }
+
+        if (_pallets.Count + _loteItems.Count > 38)
+        {
+            MostrarToast($"Límite excedido: Solo puede capturar {38 - _pallets.Count} tarima(s) más para este vale.", "danger");
+            return;
+        }
+
+        if (!_operadorValido || !int.TryParse(_noEmpleadoInput, out int noEmp) || noEmp <= 0)
+        {
+            MostrarToast("Debe ingresar un número de empleado de operador válido.", "warning");
+            return;
+        }
+
+        // 1. CANDADO PREVIO CLIENTE: Validar que no haya duplicados (hora y línea) entre las propias tarimas del lote
+        _loteFilasConConflicto.Clear();
+        _palletsConConflicto.Clear();
+
+        var paresEnLote = new Dictionary<string, int>();
+        bool conflictoInterno = false;
+        string horaConflictoInterno = "";
+        string lineaConflictoInterno = "";
+
+        foreach (var item in _loteItems)
+        {
+            string hNorm = NormalizarHora(item.Hora);
+            string lNorm = NormalizarLinea(item.Linea);
+            item.Hora = hNorm;
+            item.Linea = lNorm;
+            string clave = $"{hNorm}_{lNorm}";
+            if (paresEnLote.ContainsKey(clave))
+            {
+                _loteFilasConConflicto.Add(paresEnLote[clave]);
+                _loteFilasConConflicto.Add(item.FilaIndex);
+                conflictoInterno = true;
+                horaConflictoInterno = hNorm;
+                lineaConflictoInterno = lNorm;
+            }
+            else
+            {
+                paresEnLote[clave] = item.FilaIndex;
+            }
+        }
+
+        if (conflictoInterno)
+        {
+            MostrarToast($"Operación cancelada: El lote contiene la hora {horaConflictoInterno} en la línea {lineaConflictoInterno} repetida en más de una tarima. Corrija las horas o líneas antes de guardar.", "danger");
+            StateHasChanged();
+            return;
+        }
+
+        // 2. CANDADO PREVIO CLIENTE: Validar que ningún par (hora, línea) coincida con las tarimas ya capturadas del vale activo
+        bool conflictoVale = false;
+        string horaConflictoVale = "";
+        string lineaConflictoVale = "";
+        string infoTarimaVale = "";
+
+        foreach (var item in _loteItems)
+        {
+            string hNorm = NormalizarHora(item.Hora);
+            string lNorm = NormalizarLinea(item.Linea);
+            var pExistente = _pallets.FirstOrDefault(p => NormalizarHora(p.Hora) == hNorm && NormalizarLinea(p.LineaEmpaque) == lNorm);
+            if (pExistente != null)
+            {
+                _loteFilasConConflicto.Add(item.FilaIndex);
+                _palletsConConflicto.Add(pExistente.IdtblPallets);
+                conflictoVale = true;
+                horaConflictoVale = hNorm;
+                lineaConflictoVale = lNorm;
+                infoTarimaVale = !string.IsNullOrEmpty(pExistente.NoTarima) ? pExistente.NoTarima : $"ID {pExistente.IdtblPallets}";
+            }
+        }
+
+        if (conflictoVale)
+        {
+            MostrarToast($"⚠️ Conflicto de hora y línea: La tarima del lote con hora {horaConflictoVale} en la línea {lineaConflictoVale} ya está registrada en este vale ({infoTarimaVale}). Modifique la hora o la línea.", "danger");
+            StateHasChanged();
+            return;
+        }
+
+        try
+        {
+            int encId = _valeActual.IdRT_Encabezado > 0 ? _valeActual.IdRT_Encabezado : (_encabezadoActual?.IdRT_Encabezado ?? 0);
+
+            var batchDto = new PalletBatchInsertDto
+            {
+                FolioVale = _valeActual.FolioVale,
+                IdtblProductos = _valeActual.IdtblProductos,
+                IdRT_Encabezado = encId,
+                NoEmpCapturo = noEmp,
+                Pallets = _loteItems
+            };
+
+            var res = await PalletsService.InsertarLotePalletsAsync(batchDto);
+            if (res.Exitoso)
+            {
+                // Impresion secuencial ordenada con pausa de 350ms directamente en el circuito Blazor
+                if (res.PalletsInsertados != null && res.PalletsInsertados.Any(p => p.Exitoso))
+                {
+                    foreach (var p in res.PalletsInsertados.Where(x => x.Exitoso))
+                    {
+                        await ImprimirEtiquetaUsb(p.IdtblPallets, p.CodigoZpl);
+                        await Task.Delay(350);
+                    }
+                }
+                else if (res.IdsInsertados != null && res.IdsInsertados.Count > 0)
+                {
+                    foreach (var id in res.IdsInsertados)
+                    {
+                        await ImprimirEtiquetaUsb(id);
+                        await Task.Delay(350);
+                    }
+                }
+
+                _pallets = await PalletsService.ObtenerPalletsPorValeAsync(_valeActual.FolioVale, encId);
+                _valesDelTurno = await ValesService.ObtenerActivosAsync(_noMaquinaSeleccionada, _turnoSeleccionado, _fechaSeleccionada, _encabezadoActual?.IdRT_Encabezado);
+                if (_esTurnoAnterior)
+                {
+                    _valesTurnoAnterior = (await ValesService.ObtenerTurnoAnteriorAsync(_noMaquinaSeleccionada, _turnoSeleccionado, _fechaSeleccionada)).ToList();
+                }
+
+                MostrarToast($"¡Lote exitoso! {res.TotalGuardados} tarimas guardadas e impresas.", "success");
+                SetModoCaptura(false);
+                await ScrollTablaAlFinal();
+            }
+            else
+            {
+                if (res.IdsInsertados != null && res.IdsInsertados.Count > 0)
+                {
+                    foreach (var id in res.IdsInsertados)
+                    {
+                        await ImprimirEtiquetaUsb(id);
+                        await Task.Delay(350);
+                    }
+                    _pallets = await PalletsService.ObtenerPalletsPorValeAsync(_valeActual.FolioVale, encId);
+                }
+                MostrarToast($"Error al guardar lote: {res.Mensaje}", "danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarToast($"Error inesperado: {ex.Message}", "danger");
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void IniciarEdicion(PalletDto p)
+    {
+        _editingId = p.IdtblPallets;
+    }
+
+    private void CancelarEdicion()
+    {
+        _editingId = 0;
+    }
+
+    private async Task GuardarEdicion(PalletDto p)
+    {
+        if (p == null || _guardandoEdicionId > 0) return;
+
+        if (p.TotalCajas <= 0)
+        {
+            MostrarToast("El total de cajas debe ser mayor a 0.", "warning");
+            return;
+        }
+
+        string horaNorm = NormalizarHora(p.Hora);
+        p.Hora = horaNorm;
+
+        string lineaNorm = NormalizarLinea(p.LineaEmpaque);
+
+        // Validar si otra tarima en el vale ya tiene esa misma hora Y misma línea
+        if (_pallets.Any(other => other.IdtblPallets != p.IdtblPallets && NormalizarHora(other.Hora) == horaNorm && NormalizarLinea(other.LineaEmpaque) == lineaNorm))
+        {
+            MostrarToast($"Operación rechazada: Ya existe otra tarima registrada con la hora {horaNorm} en la línea {lineaNorm} en este vale.", "warning");
+            return;
+        }
+
+        _guardandoEdicionId = p.IdtblPallets;
+        StateHasChanged();
+
+        try
+        {
+            var updateDto = new PalletUpdateDto
+            {
+                IdtblPallets = p.IdtblPallets,
+                TotalCajas = p.TotalCajas,
+                Hora = p.Hora,
+                Linea = p.LineaEmpaque
+            };
+
+            var res = await PalletsService.ActualizarPalletAsync(updateDto);
+            if (res.Exitoso)
+            {
+                _editingId = 0;
+                MostrarToast($"Pallet {p.IdtblPallets} modificado correctamente.", "success");
+                if (_valeActual != null)
+                {
+                    int encId = _valeActual.IdRT_Encabezado > 0 ? _valeActual.IdRT_Encabezado : (_encabezadoActual?.IdRT_Encabezado ?? 0);
+                    _pallets = await PalletsService.ObtenerPalletsPorValeAsync(_valeActual.FolioVale, encId);
+                }
+            }
+            else
+            {
+                MostrarToast($"Error al modificar: {res.Mensaje}", "danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarToast($"Error inesperado: {ex.Message}", "danger");
+        }
+        finally
+        {
+            _guardandoEdicionId = 0;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ConfirmarEliminar()
+    {
+        _confirmVisible = false;
+        if (_palletIdEliminar <= 0) return;
+
+        try
+        {
+            var res = await PalletsService.EliminarPalletAsync(_palletIdEliminar);
+            if (res)
+            {
+                MostrarToast($"Pallet {_palletIdEliminar} eliminado exitosamente.", "success");
+                if (_valeActual != null)
+                {
+                    int encId = _valeActual.IdRT_Encabezado > 0 ? _valeActual.IdRT_Encabezado : (_encabezadoActual?.IdRT_Encabezado ?? 0);
+                    _pallets = await PalletsService.ObtenerPalletsPorValeAsync(_valeActual.FolioVale, encId);
+                }
+            }
+            else
+            {
+                MostrarToast("Error al eliminar el pallet.", "danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarToast($"Error inesperado: {ex.Message}", "danger");
+        }
+        finally
+        {
+            _palletIdEliminar = 0;
+        }
+    }
+
+    private void AbrirModalNuevoVale()
+    {
+        EnriquecerClavesProductosMemoria();
+        // 1. Calcular consecutivo automático del último vale registrado
+        int maxVale = 0;
+        if (_valesDelTurno.Count > 0)
+        {
+            maxVale = _valesDelTurno.Max(v => v.FolioVale);
+        }
+        if (_valesTurnoAnterior.Count > 0)
+        {
+            int maxAnt = _valesTurnoAnterior.Max(v => v.FolioVale);
+            if (maxAnt > maxVale) maxVale = maxAnt;
+        }
+        if (_valeActual != null && _valeActual.FolioVale > maxVale)
+        {
+            maxVale = _valeActual.FolioVale;
+        }
+
+        if (maxVale > 0)
+        {
+            _nuevoFolioValeInput = maxVale + 1;
+        }
+        else
+        {
+            _nuevoFolioValeInput = null; // Vacío por default, sin cero
+        }
+
+        // 2. Producto sugerido
+        if (_productosMaquina.Count > 0)
+        {
+            var prodSugerido = (_valeActual != null && _valeActual.IdtblProductos > 0)
+                ? _productosMaquina.FirstOrDefault(p => p.IdtblProductos == _valeActual.IdtblProductos)
+                : _productosMaquina.First();
+
+            if (prodSugerido != null)
+            {
+                _nuevoProductoIdInput = prodSugerido.IdtblProductos;
+                _nuevoClaveProductoInput = prodSugerido.ClaveProducto;
+            }
+            else
+            {
+                _nuevoProductoIdInput = _productosMaquina.First().IdtblProductos;
+                _nuevoClaveProductoInput = _productosMaquina.First().ClaveProducto;
+            }
+        }
+        else
+        {
+            _nuevoProductoIdInput = 0;
+            _nuevoClaveProductoInput = "";
+        }
+        _modalNuevoValeVisible = true;
+    }
+
+    private async Task EjecutarCrearNuevoVale()
+    {
+        if (_isSaving) return;
+        _isSaving = true;
+
+        if (!_nuevoFolioValeInput.HasValue || _nuevoFolioValeInput.Value <= 0)
+        {
+            MostrarToast("Debe ingresar un folio de vale fÃ­sico vÃ¡lido mayor a cero.", "warning");
+            _isSaving = false;
+            return;
+        }
+
+        if (_nuevoProductoIdInput <= 0)
+        {
+            MostrarToast("Debe seleccionar un producto vÃ¡lido de la lista.", "warning");
+            _isSaving = false;
+            return;
+        }
+
+        if (_encabezadoActual == null || !_encabezadoActual.Encontrado || _encabezadoActual.IdRT_Encabezado <= 0)
+        {
+            MostrarToast("No se puede crear el vale: No hay un turno dado de alta para hoy.", "danger");
+            _isSaving = false;
+            return;
+        }
+
+        // ValidaciÃ³n anti-duplicidad en memoria
+        if (_valesDelTurno.Any(v => v.FolioVale == _nuevoFolioValeInput.Value))
+        {
+            MostrarToast($"El folio de vale #{_nuevoFolioValeInput.Value} ya existe en este turno.", "warning");
+            _isSaving = false;
+            return;
+        }
+
+        try
+        {
+            var createDto = new ValeCreateDto
+            {
+                FolioVale = _nuevoFolioValeInput.Value,
+                IdtblProductos = _nuevoProductoIdInput,
+                IdRT_Encabezado = _encabezadoActual.IdRT_Encabezado
+            };
+
+            var res = await ValesService.CrearValeAsync(createDto);
+            if (res.Exitoso)
+            {
+                _modalNuevoValeVisible = false;
+                MostrarToast($"Vale #{_nuevoFolioValeInput.Value} creado y activado exitosamente.", "success");
+
+                await CargarTurnoYValesAsync();
+                await SeleccionarValeDirectoAsync(_nuevoFolioValeInput.Value);
+            }
+            else
+            {
+                MostrarToast($"Error al crear vale: {res.Mensaje}", "danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarToast($"Error inesperado: {ex.Message}", "danger");
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+    private void AbrirModalModificarVale()
+    {
+        EnriquecerClavesProductosMemoria();
+        if (_valeActual == null)
+        {
+            MostrarToast("Seleccione un vale de la lista para poder modificarlo.", "warning");
+            return;
+        }
+
+        _modificarFolioVale = _valeActual.FolioVale;
+        _modificarIdProducto = _valeActual.IdtblProductos;
+        var prodActual = _productosMaquina.FirstOrDefault(p => p.IdtblProductos == _modificarIdProducto);
+        _modificarClaveProducto = prodActual?.ClaveProducto ?? _valeActual.ClaveProducto ?? "";
+        _modalModificarValeVisible = true;
+    }
+
+    private async Task EjecutarModificarVale()
+    {
+        if (_isSaving) return;
+        _isSaving = true;
+
+        if (_valeActual == null || _valeActual.IdAutotblProduccion <= 0)
+        {
+            MostrarToast("No hay un vale seleccionado para modificar.", "warning");
+            _isSaving = false;
+            return;
+        }
+
+        if (!_modificarFolioVale.HasValue || _modificarFolioVale.Value <= 0)
+        {
+            MostrarToast("El folio del vale debe ser mayor a cero.", "warning");
+            _isSaving = false;
+            return;
+        }
+
+        if (_modificarIdProducto <= 0)
+        {
+            MostrarToast("Debe seleccionar un producto vÃ¡lido.", "warning");
+            _isSaving = false;
+            return;
+        }
+
+        // ValidaciÃ³n anti-duplicidad en memoria
+        if (_valesDelTurno.Any(v => v.FolioVale == _modificarFolioVale.Value && v.IdAutotblProduccion != _valeActual.IdAutotblProduccion))
+        {
+            MostrarToast($"El folio de vale #{_modificarFolioVale.Value} ya estÃ¡ asignado a otro vale en este turno.", "warning");
+            _isSaving = false;
+            return;
+        }
+
+        try
+        {
+            var dto = new ValeModificarDto
+            {
+                IdAutotblProduccion = _valeActual.IdAutotblProduccion,
+                FolioVale = _modificarFolioVale.Value,
+                IdtblProductos = _modificarIdProducto,
+                IdRT_Encabezado = _valeActual.IdRT_Encabezado
+            };
+
+            var res = await ValesService.ModificarValeAsync(dto);
+            if (res.Exitoso)
+            {
+                _modalModificarValeVisible = false;
+                MostrarToast($"Vale modificado exitosamente (Folio: {_modificarFolioVale.Value}).", "success");
+
+                await CargarTurnoYValesAsync();
+                await SeleccionarVale(_modificarFolioVale.Value, _valeActual.IdRT_Encabezado);
+            }
+            else
+            {
+                MostrarToast($"Error al modificar: {res.Mensaje}", "danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarToast($"Error inesperado: {ex.Message}", "danger");
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+    private void AbrirModalReimpresion()
+    {
+        _folioReimpresionInput = UltimoFolioPallet;
+        _modalReimpresionVisible = true;
+    }
+
+    private async Task EjecutarReimpresionModal()
+    {
+        if (_folioReimpresionInput <= 0)
+        {
+            MostrarToast("Ingrese un número de folio o ID válido.", "warning");
+            return;
+        }
+
+        _modalReimpresionVisible = false;
+        await ImprimirEtiquetaUsb(_folioReimpresionInput);
+    }
+
+    private async Task ImprimirEtiquetaUsb(int idtblPallets, string? codigoZplPrecalculado = null)
+    {
+        try
+        {
+            string? zpl = codigoZplPrecalculado;
+            if (string.IsNullOrWhiteSpace(zpl))
+            {
+                // 1. Obtener código ZPL generado por la base de datos a través de la API
+                var etiqueta = await ImpresionService.ObtenerEtiquetaAsync(idtblPallets);
+                zpl = etiqueta?.CodigoZpl;
+            }
+
+            if (!string.IsNullOrWhiteSpace(zpl))
+            {
+                // 2. Enviar directamente al microservicio Zebra local en la PC cliente (127.0.0.1:9100)
+                try
+                {
+                    var clientRes = await JS.InvokeAsync<ZebraPrintResultDto>("ZebraPrint.printZpl", zpl);
+                    if (clientRes != null && clientRes.Success)
+                    {
+                        string modoDestino = !string.IsNullOrEmpty(clientRes.Mode) ? clientRes.Mode : "Zebra USB/Red"; MostrarToast($"Etiqueta #{idtblPallets} enviada a {modoDestino}.", "success");
+                        _impresoraConectada = true;
+                        _impresoraEnPausa = false;
+                        return;
+                    }
+                    else if (clientRes != null && clientRes.IsPaused)
+                    {
+                        MostrarToast($"Aviso: Impresora en PAUSA con {clientRes.CJobs} trabajo(s) en cola. Despause para imprimir.", "warning");
+                        _impresoraEnPausa = true;
+                        _trabajosEnCola = clientRes.CJobs;
+                        return;
+                    }
+                }
+                catch { }
+            }
+
+            // 3. Fallback: Si no responde el puente local cliente, enviar al servicio central del servidor
+            var (ok, msg) = await ImpresionService.EnviarAImpresoraUsbAsync(idtblPallets);
+            if (ok)
+            {
+                MostrarToast($"Etiqueta #{idtblPallets} enviada a Zebra USB.", "success");
+                _impresoraConectada = true;
+            }
+            else
+            {
+                MostrarToast($"Aviso de Impresión: {msg}", "warning");
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarToast($"Error al imprimir: {ex.Message}", "danger");
+        }
+    }
+
+    private async Task VerificarImpresoraUsbAsync()
+    {
+        try
+        {
+            // 1. Consultar primero al microservicio local en la PC cliente (ZebraPrint.checkStatus en http://127.0.0.1:9100)
+            try
+            {
+                var clientStatus = await JS.InvokeAsync<ZebraStatusDto>("ZebraPrint.checkStatus");
+                if (clientStatus != null && clientStatus.Connected)
+                {
+                    _impresoraConectada = true;
+                    _impresoraNombre = !string.IsNullOrWhiteSpace(clientStatus.PrinterName) ? clientStatus.PrinterName : "Zebra USB Local";
+                    _impresoraMensaje = clientStatus.Message ?? "Conectada en PC cliente";
+                    _impresoraEnPausa = clientStatus.IsPaused;
+                    _trabajosEnCola = clientStatus.CJobs;
+                    StateHasChanged();
+                    return;
+                }
+                else if (clientStatus != null)
+                {
+                    _impresoraConectada = false;
+                    _impresoraNombre = !string.IsNullOrWhiteSpace(clientStatus.PrinterName) ? clientStatus.PrinterName : "Zebra USB";
+                    _impresoraMensaje = clientStatus.Message ?? "No se detectó el Agente Zebra USB en esta PC (127.0.0.1:9100).";
+                    _impresoraEnPausa = clientStatus.IsPaused;
+                    _trabajosEnCola = clientStatus.CJobs;
+                    StateHasChanged();
+                    return;
+                }
+            }
+            catch { }
+
+            // 2. Si falló la invocación JS, consultar estado en el servidor como respaldo defensivo
+            var est = await ImpresionService.ObtenerEstadoImpresoraAsync();
+            if (est.Conectada)
+            {
+                _impresoraConectada = true;
+                _impresoraNombre = string.IsNullOrWhiteSpace(est.NombreImpresora) ? "Zebra USB" : est.NombreImpresora;
+                _impresoraMensaje = est.Mensaje ?? "";
+                _impresoraEnPausa = false;
+                _trabajosEnCola = 0;
+            }
+            else
+            {
+                _impresoraConectada = false;
+                _impresoraMensaje = "Servicio Zebra USB no detectado en esta PC (127.0.0.1:9100).";
+            }
+        }
+        catch
+        {
+            _impresoraConectada = false;
+            _impresoraMensaje = "No se detectó impresora Zebra";
+        }
+        StateHasChanged();
+    }
+
+    private async Task RefrescarTodo()
+    {
+        CalcularTurnoYFechaPlanta();
+        _cargandoDatos = true;
+        try
+        {
+            var tTurno = CargarTurnoYValesAsync();
+            var tProd = CargarProductosMaquinaAsync();
+            await Task.WhenAll(tTurno, tProd);
+        }
+        finally
+        {
+            _cargandoDatos = false;
+        }
+
+        _ = Task.Run(async () =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await VerificarImpresoraUsbAsync();
+                StateHasChanged();
+            });
+        });
+
+        MostrarToast("Información actualizada correctamente.", "info");
+    }
+
+    private void MostrarToast(string mensaje, string tipo)
+    {
+        _toastMessage = mensaje;
+        _toastType = tipo;
+        _toastVisible = true;
+    }
+
+    private async Task ScrollTablaAlFinal()
+    {
+        try
+        {
+            await Task.Delay(30);
+            await JS.InvokeVoidAsync("eval", @"(function() {
+                function bajarScroll() {
+                    var c = document.getElementById('palletsTableContainer');
+                    if (c) {
+                        c.scrollTop = c.scrollHeight + 10000;
+                    }
+                    var inp = document.getElementById('input-nueva-hora');
+                    if (inp) {
+                        inp.scrollIntoView({ behavior: 'auto', block: 'end' });
+                        inp.focus();
+                        inp.select();
+                    }
+                }
+                bajarScroll();
+                setTimeout(bajarScroll, 60);
+                setTimeout(bajarScroll, 180);
+            })()");
+        }
+        catch { }
+    }
+
+    private static string FormatHora(object? hora)
+    {
+        if (hora == null) return "--:--";
+        if (hora is TimeSpan ts) return ts.ToString(@"hh\:mm");
+        if (hora is DateTime dt) return dt.ToString("HH:mm");
+        string str = hora.ToString() ?? "";
+        return str.Length >= 5 ? str.Substring(0, 5) : str;
+    }
+
+    private void LimpiarConflictosLote()
+    {
+        if (_loteFilasConConflicto.Count > 0 || _palletsConConflicto.Count > 0)
+        {
+            _loteFilasConConflicto.Clear();
+            _palletsConConflicto.Clear();
+            StateHasChanged();
+        }
+    }
+
+    private async Task CargarLineasEmpaqueAsync()
+    {
+        if (_noMaquinaSeleccionada <= 0) { _lineas = new(); return; }
+        try
+        {
+            _lineas = await CatalogCache.ObtenerLineasEmpaqueAsync(_noMaquinaSeleccionada);
+            if (_lineas.Count > 0 && (string.IsNullOrEmpty(_nuevaLinea) || !_lineas.Any(l => l.LineaEmpaque == _nuevaLinea)))
+            {
+                _nuevaLinea = _lineas.First().LineaEmpaque;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar lneas: {ex.Message}");
+        }
+    }
+
+    public void Dispose()
+    {
+        _shiftCheckTimer?.Dispose();
+    }
+}

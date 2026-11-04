@@ -1,0 +1,43 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <OutputType>Library</OutputType>
+    <!-- Desactivar compilación C# predeterminada para proyecto SPA React -->
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <!-- Excluir node_modules, dist y legados de la solución -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);node_modules\**;dist\**;.vscode\**;_blazor_legacy\**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Estructura visible en el Explorador de Soluciones de Visual Studio -->
+    <Content Include="index.html" />
+    <Content Include="package.json" />
+    <Content Include="vite.config.ts" />
+    <Content Include="tsconfig*.json" />
+    <Content Include="pnpm-workspace.yaml" />
+    <Content Include=".npmrc" />
+    <Content Include="src\**\*" Exclude="src\**\*.cs" />
+    <Content Include="public\**\*" />
+  </ItemGroup>
+
+  <!-- Disparar compilación de Vite al dar Clic Derecho -> Compilar / Recompilar en Visual Studio -->
+  <Target Name="BuildFrontend" BeforeTargets="Build">
+    <Message Importance="high" Text="[PalletsWW_PC.Web] Compilando Frontend React 19 (pnpm run build)..." />
+    <Exec Command="pnpm run build" WorkingDirectory="$(MSBuildProjectDirectory)" />
+  </Target>
+
+  <!-- Incluir la carpeta dist/ completa (HTML, JS, CSS, web.config) en la salida de Publicación (Publish) para IIS -->
+  <Target Name="PublishFrontend" AfterTargets="ComputeFilesToPublish">
+    <ItemGroup>
+      <DistFiles Include="dist\**\*" />
+      <ResolvedFileToPublish Include="@(DistFiles->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
+        <RelativePath>%(RecursiveDir)%(Filename)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
+
+</Project>

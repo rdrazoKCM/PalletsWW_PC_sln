@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CrystalDecisions.CrystalReports.Engine" Version="1.0.0" />
+  </ItemGroup>
+
+  <!-- CANDADO DE SEGURIDAD INDUSTRIAL: Validar sintaxis de zebra-print.js antes de compilar o publicar -->
+  <Target Name="ValidateJavaScriptSyntax" BeforeTargets="BeforeBuild;BeforePublish">
+    <Message Importance="high" Text="[PRE-FLIGHT] Validando sintaxis de zebra-print.js con Node.js..." />
+    <Exec Command="node -c &quot;$(MSBuildProjectDirectory)\wwwroot\js\zebra-print.js&quot;" ContinueOnError="false" StandardOutputImportance="high" StandardErrorImportance="high" />
+    <Message Importance="high" Text="[PRE-FLIGHT] Sintaxis de zebra-print.js certificada (0 errores)." />
+  </Target>
+
+</Project>

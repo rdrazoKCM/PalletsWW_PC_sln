@@ -1,0 +1,31 @@
+﻿@inherits LayoutComponentBase
+
+<div class="app-layout">
+    <!-- BARRA LATERAL IZQUIERDA (SIDEBAR COLAPSABLE) -->
+    <aside class="sidebar-container @(_isCollapsed ? "sidebar-collapsed" : "sidebar-expanded")">
+        <NavMenu IsCollapsed="_isCollapsed" 
+                 OnToggleCollapse="ToggleSidebar" />
+    </aside>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="main-content @(_isCollapsed ? "content-collapsed" : "content-expanded")">
+        <article class="content-body px-3 px-md-4 py-3">
+            @Body
+        </article>
+    </main>
+</div>
+
+<div id="blazor-error-ui">
+    Se produjo un error no controlado.
+    <a href="" class="reload">Recargar</a>
+    <a class="dismiss">🗙</a>
+</div>
+
+@code {
+    private bool _isCollapsed = true;
+
+    private void ToggleSidebar()
+    {
+        _isCollapsed = !_isCollapsed;
+    }
+}

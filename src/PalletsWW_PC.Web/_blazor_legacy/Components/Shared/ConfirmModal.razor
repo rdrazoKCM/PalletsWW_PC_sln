@@ -1,0 +1,57 @@
+﻿@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public bool Visible { get => IsVisible; set => IsVisible = value; }
+
+    [Parameter] public string Title { get; set; } = "Confirmar";
+    [Parameter] public string Titulo { get => Title; set => Title = value; }
+
+    [Parameter] public string Message { get; set; } = "¿Está seguro?";
+    [Parameter] public string Mensaje { get => Message; set => Message = value; }
+
+    [Parameter] public string Tipo { get; set; } = "danger";
+
+    [Parameter] public EventCallback<bool> OnConfirmation { get; set; }
+    [Parameter] public EventCallback<bool> OnConfirm { get; set; }
+
+    private async Task HandleConfirmAsync(bool confirmed)
+    {
+        IsVisible = false;
+        if (OnConfirmation.HasDelegate)
+            await OnConfirmation.InvokeAsync(confirmed);
+        if (OnConfirm.HasDelegate)
+            await OnConfirm.InvokeAsync(confirmed);
+    }
+}
+
+@if (IsVisible)
+{
+    <div class="modal-backdrop fade show" style="z-index: 1070; background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);"></div>
+    <div class="modal fade show d-block" tabindex="-1" style="z-index: 1075;">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0" style="border-radius: 14px; overflow: hidden;">
+                <div class="modal-header bg-danger text-white py-3 px-4">
+                    <h5 class="modal-title fs-6 fw-bold d-flex align-items-center gap-2">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        <span>@Title</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="() => HandleConfirmAsync(false)"></button>
+                </div>
+                <div class="modal-body p-4 text-center">
+                    <div class="mb-3 text-danger">
+                        <i class="bi bi-trash3-fill" style="font-size: 3rem;"></i>
+                    </div>
+                    <p class="fs-6 fw-semibold text-dark mb-0" style="line-height: 1.5;">@Message</p>
+                    <p class="small text-muted mt-2 mb-0">Esta acción no se puede deshacer una vez confirmada.</p>
+                </div>
+                <div class="modal-footer bg-light py-2 px-4 border-top d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary btn-sm fw-semibold" @onclick="() => HandleConfirmAsync(false)">
+                        Cancelar
+                    </button>
+                    <button type="button" class="btn btn-danger btn-sm fw-bold px-3 shadow-sm" @onclick="() => HandleConfirmAsync(true)">
+                        <i class="bi bi-trash-fill me-1"></i>Sí, Eliminar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}

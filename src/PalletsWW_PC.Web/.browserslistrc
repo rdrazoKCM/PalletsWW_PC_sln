@@ -1,0 +1,6 @@
+﻿# Targets para PCs de planta Kimberly-Clark (Windows 10)
+# Lightning CSS aplana @layer cuando el target no lo soporta nativamente
+chrome >= 79
+edge >= 79
+firefox >= 78
+not dead
