@@ -107,37 +107,30 @@ export const storageService = {
   },
 
   getServerIp(): string {
-    // 1. Si la app está ejecutándose en el navegador conectada a una IP/host real de red (planta),
-    // ese host es la verdad operativa absoluta.
+    // 1. Prioridad: Lo que el supervisor haya configurado explícitamente en esta terminal
+    const saved = localStorage.getItem('PalletsWW_ServerIp');
+    if (saved && saved.trim()) return saved.trim();
+
+    // 2. Si no hay configuración manual previa, tomar el host al que se conectó el navegador
     if (typeof window !== 'undefined' && window.location) {
       const host = window.location.hostname;
       if (host && host !== 'localhost' && host !== '127.0.0.1') {
-        // Auto-sincronizar localStorage para evitar desalineación residual
-        try {
-          const currentSaved = localStorage.getItem('PalletsWW_ServerIp');
-          if (currentSaved !== host) {
-            localStorage.setItem('PalletsWW_ServerIp', host);
-            localStorage.setItem('PalletsWW_ApiUrl', `http://${host}:5105`);
-          }
-        } catch {}
         return host;
       }
     }
 
-    // 2. Fallback a configuración guardada en localStorage (desarrollo local)
-    const saved = localStorage.getItem('PalletsWW_ServerIp');
-    if (saved && saved.trim()) return saved.trim();
-    return '10.26.24.37';
+    // 3. Fallback predeterminado oficial de planta
+    return '10.26.24.31';
   },
 
   getServerPort(): number {
-    if (typeof window !== 'undefined' && window.location && window.location.port) {
-      const p = parseInt(window.location.port, 10);
-      if (!isNaN(p) && p > 0) return p;
-    }
     const saved = localStorage.getItem('PalletsWW_ServerPort');
     if (saved) {
       const p = parseInt(saved, 10);
+      if (!isNaN(p) && p > 0) return p;
+    }
+    if (typeof window !== 'undefined' && window.location && window.location.port) {
+      const p = parseInt(window.location.port, 10);
       if (!isNaN(p) && p > 0) return p;
     }
     return 5106;

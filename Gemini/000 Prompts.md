@@ -53,3 +53,9 @@ Necesito que publiques este proyecto a GitHub, ¿qué necesitas?
 
 # 009 Publicación Completa del Repositorio a GitHub
 Quiero que realices todo el proceso de publicación del proyecto al repositorio https://github.com/rdrazoKCM/PalletsWW_PC_sln.git.
+
+# 010 Corrección de Cambio Dinámico de Servidor IIS en Configuración
+El día de hoy tuve un problema con la PC que uso como servidor de IIS (IP 10.26.24.31). En el menú de configuración tenemos una opción para cambiar el servidor de IIS, pero me di cuenta de que no funciona: aunque se cambie de servidor, realmente no lo hace. Necesito que me ayudes a verificar y corregir para que funcione correctamente.
+
+# 011 Publicación de Cambios tras Verificación de Integridad
+Publica los cambios, pero antes revisa que funcione correctamente y verifica que no se haya modificado ninguna otra funcionalidad.

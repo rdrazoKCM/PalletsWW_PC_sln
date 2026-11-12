@@ -148,18 +148,16 @@ export const ConfiguracionPage: React.FC = () => {
           if (data.printerIp) setPrinterIpInput(String(data.printerIp));
           if (data.printerPort) setPrinterPortInput(String(data.printerPort));
 
-          // En desarrollo local (localhost), sincronizar con la IP del servidor que PrintBridge tiene en settings.json
-          if (typeof window !== 'undefined' && window.location) {
-            const h = window.location.hostname;
-            if ((!h || h === 'localhost' || h === '127.0.0.1') && data.serverIp) {
-              const bridgeIp = String(data.serverIp).trim();
-              if (bridgeIp) {
-                setServerIpInput(bridgeIp);
-                if (bridgeIp === '10.26.24.31') setServerMode('oficial');
-                else if (bridgeIp === '10.26.24.37') setServerMode('pruebas');
-                else setServerMode('personalizado');
-                setApiUrlInput(`http://${bridgeIp}:5105`);
-              }
+          // Sincronizar con la IP del servidor que PrintBridge tiene en settings.json si no hay configuración en localStorage
+          if (data.serverIp) {
+            const bridgeIp = String(data.serverIp).trim();
+            const currentSaved = localStorage.getItem('PalletsWW_ServerIp');
+            if (!currentSaved && bridgeIp) {
+              setServerIpInput(bridgeIp);
+              if (bridgeIp === '10.26.24.31') setServerMode('oficial');
+              else if (bridgeIp === '10.26.24.37') setServerMode('pruebas');
+              else setServerMode('personalizado');
+              setApiUrlInput(`http://${bridgeIp}:5105`);
             }
           }
         }
@@ -303,8 +301,10 @@ export const ConfiguracionPage: React.FC = () => {
       storageService.setServerConfig(cleanIp, cleanPort);
       setServerIpInput(cleanIp);
       setServerPortInput(cleanPort.toString());
-      setApiUrlInput(`http://${cleanIp}:5105`);
+      const newApiUrl = `http://${cleanIp}:5105`;
+      setApiUrlInput(newApiUrl);
 
+      // Sincronizar con PrintBridge local para actualizar settings.json y accesos directos de Windows (.lnk)
       let shortcutUpdated = false;
       try {
         const resp = await fetch('http://127.0.0.1:9100/config', {
@@ -319,25 +319,51 @@ export const ConfiguracionPage: React.FC = () => {
         if (resp.ok) shortcutUpdated = true;
       } catch { }
 
-      await Swal.fire({
-        icon: 'success',
-        title: '¡Servidor IIS Configurado!',
-        html: `
-          <div class="text-left text-sm space-y-2 p-1">
-            <p><strong>Servidor Guardado:</strong> <span class="text-kc-600 font-bold">${cleanIp}:${cleanPort}</span></p>
-            <p><strong>API Backend:</strong> <span class="font-mono text-slate-700">http://${cleanIp}:5105</span></p>
-            <p><strong>Accesos Directos de Windows:</strong> <span class="font-bold ${shortcutUpdated ? 'text-emerald-700' : 'text-amber-600'}">${shortcutUpdated ? 'Actualizados automáticamente en el Escritorio y Menú Inicio' : 'Se actualizarán al abrir PrintBridge'}</span></p>
-            <div class="mt-2 text-xs text-slate-500 border-t border-slate-200 pt-2">
-              Redirigiendo a la nueva dirección en 2 segundos...
-            </div>
-          </div>
-        `,
-        confirmButtonColor: '#0047AB',
-        timer: 2500,
-        timerProgressBar: true
-      });
+      const actualHost = window.location.hostname;
+      const isDifferentHost = actualHost && actualHost !== 'localhost' && actualHost !== '127.0.0.1' && actualHost !== cleanIp;
 
-      window.location.href = `http://${cleanIp}:${cleanPort}/#/configuracion`;
+      if (isDifferentHost) {
+        const result = await Swal.fire({
+          icon: 'success',
+          title: '¡Servidor IIS Configurado!',
+          html: `
+            <div class="text-left text-sm space-y-2 p-1">
+              <p><strong>Nuevo Servidor:</strong> <span class="text-kc-600 font-bold">${cleanIp}:${cleanPort}</span></p>
+              <p><strong>API Backend:</strong> <span class="font-mono text-slate-700 font-bold">${newApiUrl}</span></p>
+              <p><strong>Accesos Directos de Windows:</strong> <span class="font-bold ${shortcutUpdated ? 'text-emerald-700' : 'text-amber-600'}">${shortcutUpdated ? 'Actualizados automáticamente en el Escritorio y Menú Inicio' : 'Se actualizarán al iniciar PrintBridge'}</span></p>
+              <div class="mt-3 p-2.5 rounded-lg bg-blue-50 border border-blue-200 text-xs text-blue-900 leading-relaxed">
+                La API quedó reconfigurada hacia <strong>${newApiUrl}</strong> para todas las operaciones en esta terminal.<br/><br/>
+                ¿Deseas recargar la interfaz web desde el nuevo servidor IIS <strong>${cleanIp}:${cleanPort}</strong> ahora mismo?
+              </div>
+            </div>
+          `,
+          showCancelButton: true,
+          confirmButtonColor: '#0047AB',
+          cancelButtonColor: '#64748B',
+          confirmButtonText: 'Sí, recargar desde nuevo servidor',
+          cancelButtonText: 'Permanecer aquí (usando la nueva API)',
+          reverseButtons: true
+        });
+
+        if (result.isConfirmed) {
+          window.location.href = `http://${cleanIp}:${cleanPort}/#/configuracion`;
+        }
+      } else {
+        await Swal.fire({
+          icon: 'success',
+          title: '¡Configuración Guardada!',
+          html: `
+            <div class="text-left text-sm space-y-2 p-1">
+              <p><strong>Servidor Guardado:</strong> <span class="text-kc-600 font-bold">${cleanIp}:${cleanPort}</span></p>
+              <p><strong>API Backend:</strong> <span class="font-mono text-slate-700 font-bold">${newApiUrl}</span></p>
+              <p><strong>Accesos Directos de Windows:</strong> <span class="font-bold ${shortcutUpdated ? 'text-emerald-700' : 'text-slate-600'}">${shortcutUpdated ? 'Actualizados automáticamente en el Escritorio y Menú Inicio' : 'Guardado localmente en esta terminal'}</span></p>
+            </div>
+          `,
+          confirmButtonColor: '#0047AB',
+          timer: 2200,
+          timerProgressBar: true
+        });
+      }
     } catch (err: any) {
       Swal.fire({
         icon: 'error',
@@ -465,19 +491,49 @@ export const ConfiguracionPage: React.FC = () => {
 
   const handleTestApi = async () => {
     setTestingApi(true);
+    setApiStatus(null);
     const start = performance.now();
+    
+    // Probar directamente la URL/IP del backend que el usuario tiene en pantalla
+    const targetUrl = (apiUrlInput.trim() || `http://${serverIpInput.trim()}:5105`).replace(/\/+$/, '');
+    const endpoint = `${targetUrl}/api/catalogos/maquinas`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+
     try {
-      const data = await catalogosService.getMaquinas();
+      const resp = await fetch(endpoint, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
       const elapsed = Math.round(performance.now() - start);
+
+      if (!resp.ok) {
+        throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+      }
+
+      const data = await resp.json();
+      const count = Array.isArray(data) ? data.length : 0;
       setApiStatus({
         ok: true,
         ms: elapsed,
-        message: `Conexión exitosa con Backend API (${elapsed} ms). Catálogo respondió con ${data.length} máquinas.`
+        message: `¡Conexión exitosa con Backend API en ${targetUrl}! (${elapsed} ms). Catálogo respondió con ${count} máquinas.`
       });
+      if (Array.isArray(data) && count > 0) {
+        setMaquinas(data);
+      }
     } catch (err: any) {
+      clearTimeout(timeoutId);
+      const elapsed = Math.round(performance.now() - start);
+      const isTimeout = err.name === 'AbortError';
       setApiStatus({
         ok: false,
-        message: `Fallo de conexión con API (${apiUrlInput}): ${err.message || 'Servidor no responde'}`
+        ms: elapsed,
+        message: isTimeout
+          ? `Tiempo de espera agotado (>6s) al conectar con ${targetUrl}. Verifique que el servidor IIS y la API estén activos y sin bloqueo de firewall.`
+          : `Fallo de conexión con API (${targetUrl}): ${err.message || 'Servidor no responde'}`
       });
     } finally {
       setTestingApi(false);
@@ -1045,14 +1101,25 @@ export const ConfiguracionPage: React.FC = () => {
             </div>
 
             {/* Banner de Servidor Activo Detectado */}
-            <div className="p-2.5 rounded-lg bg-slate-100 border border-slate-200 text-xs flex items-center justify-between shadow-2xs">
-              <div className="flex items-center gap-1.5 text-slate-600">
-                <Server className="w-3.5 h-3.5 text-slate-500" />
-                <span className="font-medium">Conectado actualmente a:</span>
+            <div className="p-2.5 rounded-lg bg-slate-100 border border-slate-200 text-xs flex flex-col gap-1.5 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-slate-600">
+                  <Server className="w-3.5 h-3.5 text-slate-500" />
+                  <span className="font-medium">Origen Web (IIS):</span>
+                </div>
+                <span className="font-mono font-bold text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200 text-xs">
+                  {window.location.hostname || 'localhost'}:{window.location.port || '5106'}
+                </span>
               </div>
-              <span className="font-mono font-bold text-kc-700 bg-white px-2 py-0.5 rounded border border-slate-200 text-xs">
-                {(window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') ? window.location.hostname : storageService.getServerIp()}:{window.location.port || '5106'}
-              </span>
+              <div className="flex items-center justify-between pt-1 border-t border-slate-200/60">
+                <div className="flex items-center gap-1.5 text-slate-600">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="font-medium">Backend API Activo:</span>
+                </div>
+                <span className="font-mono font-bold text-kc-700 bg-white px-2 py-0.5 rounded border border-slate-200 text-xs">
+                  {APP_CONFIG.apiBaseUrl}
+                </span>
+              </div>
             </div>
 
             <p className="text-xs text-slate-500">

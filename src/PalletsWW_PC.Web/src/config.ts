@@ -4,8 +4,20 @@
  */
 
 export const getApiBaseUrl = (): string => {
-  // 1. En producción en planta, el navegador ya está conectado al host del IIS (ej. 10.26.24.37 o 10.26.24.31).
-  // La API REST reside obligatoriamente en el puerto 5105 de ese MISMO servidor.
+  // 1. Prioridad Máxima: Si el usuario/supervisor configuró una URL o Servidor IP en localStorage
+  if (typeof window !== 'undefined' && window.localStorage) {
+    let saved = localStorage.getItem('PalletsWW_ApiUrl');
+    if (saved && saved.trim() !== '') {
+      saved = saved.trim().replace(/\/+$/, '');
+      return saved;
+    }
+    const savedIp = localStorage.getItem('PalletsWW_ServerIp');
+    if (savedIp && savedIp.trim() !== '') {
+      return `http://${savedIp.trim()}:5105`;
+    }
+  }
+
+  // 2. Si no hay configuración manual en localStorage, tomar el host al que se conectó el navegador
   if (typeof window !== 'undefined' && window.location) {
     const hostname = window.location.hostname;
     if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
@@ -14,15 +26,7 @@ export const getApiBaseUrl = (): string => {
     }
   }
 
-  // 2. En desarrollo local (localhost), permitir override mediante localStorage
-  if (typeof window !== 'undefined' && window.localStorage) {
-    let saved = localStorage.getItem('PalletsWW_ApiUrl');
-    if (saved && saved.trim() !== '') {
-      saved = saved.trim().replace(/\/+$/, '');
-      return saved;
-    }
-  }
-
+  // 3. Fallback en desarrollo local
   return 'http://localhost:5105';
 };
 
