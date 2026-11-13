@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # Script de Despliegue de Alta Disponibilidad (Near Zero-Downtime) para IIS
 # Proyecto: Pallets Wipes PC (Kimberly-Clark Planta Tlaxcala)
 # ==============================================================================
@@ -6,7 +6,8 @@
 param(
     [string]$PublishRoot = "C:\PublishIIS",
     [switch]$SkipApi,
-    [switch]$SkipWeb
+    [switch]$SkipWeb,
+    [switch]$BuildInstaller
 )
 
 $ErrorActionPreference = "Stop"
@@ -24,6 +25,30 @@ $webPublishDir = Join-Path $PublishRoot "PalletsWW_PC_React.Publish"
 
 Write-Host "Destino API:  $apiPublishDir" -ForegroundColor Cyan
 Write-Host "Destino Web:  $webPublishDir" -ForegroundColor Cyan
+
+# ------------------------------------------------------------------------------
+# 0. COMPILACION DEL INSTALADOR Y MICROSERVICIO LOCAL (Si se requiere)
+# ------------------------------------------------------------------------------
+if ($BuildInstaller) {
+    Write-Host "`n[0/3] Compilando Microservicio PrintBridge e Instalador Cliente..." -ForegroundColor Yellow
+    $bridgeProj = Join-Path $repoRoot "src\PalletsPrintBridge\PalletsPrintBridge.csproj"
+    $bridgeStaging = Join-Path $repoRoot "src\PalletsPrintBridge\bin\Publish"
+    & dotnet publish $bridgeProj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o $bridgeStaging --nologo
+    if ($LASTEXITCODE -ne 0) { throw "Error al compilar PalletsPrintBridge." }
+
+    $payloadDir = Join-Path $repoRoot "src\PalletsWW_ClientSetup\Payload"
+    Copy-Item "$bridgeStaging\PalletsPrintBridge.exe" "$payloadDir\PalletsPrintBridge.exe" -Force
+
+    $setupProj = Join-Path $repoRoot "src\PalletsWW_ClientSetup\PalletsWW_ClientSetup.csproj"
+    $setupStaging = Join-Path $repoRoot "src\PalletsWW_ClientSetup\bin\Publish"
+    & dotnet publish $setupProj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o $setupStaging --nologo
+    if ($LASTEXITCODE -ne 0) { throw "Error al compilar Setup_PalletsWW_Cliente." }
+
+    # Sincronizar en public de la Web App para descarga directa de operadores
+    $publicExe = Join-Path $repoRoot "src\PalletsWW_PC.Web\public\Setup_PalletsWW_Cliente.exe"
+    Copy-Item "$setupStaging\Setup_PalletsWW_Cliente.exe" $publicExe -Force
+    Write-Host "-> Instalador Setup_PalletsWW_Cliente.exe compilado y colocado en public/." -ForegroundColor Green
+}
 
 # ------------------------------------------------------------------------------
 # 1. PUBLICACION DE BACKEND WEB API (Tecnica Oficial app_offline.htm)

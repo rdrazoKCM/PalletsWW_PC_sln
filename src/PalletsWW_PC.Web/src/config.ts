@@ -127,13 +127,14 @@ export const getMaxTarimasPorMaquina = (_noMaquina?: number): number => {
 
 export const APP_CONFIG = {
   appName: 'Pallets Wipes PC',
-  version: 'Versión 11',
-  versionNotesTitle: 'Novedades de la Versión 11',
+  version: 'Versión 12',
+  versionNotesTitle: 'Novedades de la Versión 12',
   versionReleaseNotes: [
-    'Solución del mapeo dinámico del servidor IIS en configuración.',
-    'Sincronización universal de accesos directos en Escritorio y Barra de Tareas.',
-    'Detección automática e insensible a mayúsculas/minúsculas en el instalador.',
-    'Purga automática de sesiones obsoletas de Edge en quiosco.'
+    'Mapeo dinámico y solución del cambio de Servidor IIS en configuración y accesos directos.',
+    'Rediseño ergonómico de barra lateral con número de versión destacado y botón de novedades.',
+    'Panel desplegable interactivo de notas de versión con cierre inteligente.',
+    'Sincronización universal de accesos directos para Windows 10 y Windows 11 sin degradar a Edge genérico.',
+    'Purga automática de sesiones inactivas de Edge en terminales de planta.'
   ],
   planta: 'Planta Tlaxcala - Depto Wipes',
   
