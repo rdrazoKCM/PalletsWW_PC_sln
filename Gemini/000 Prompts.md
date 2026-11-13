@@ -80,7 +80,6 @@ Ajustar el selector de temas de la barra lateral para mostrar 10 temas visibles 
 Colocar la actualización del instalador Setup_PalletsWW_Cliente.exe directamente en la raíz de C:\PublishIIS\ para homologar su distribución con el resto de terminales de planta.
 *(Documentado en Gemini/117 Despliegue de Instalador en Raiz de PublishIIS.md)*
 
-
-
-
-
+# 018 Homologación Visual de Novedades de la Versión con Pallets Pañal
+Homologar el diseño visual y la ergonomía del panel de novedades de la versión en la barra lateral con la interfaz de Pallets Pañal, integrando tarjeta flotante con efecto blur y sombra profunda, cabecera con degradado y botón de cierre, insignias por categoría (PLATAFORMA, PRODUCCIÓN, DISEÑO, etc.), tipografía jerarquizada y semáforo de estado de conexión del servicio local Zebra (9100).
+*(Documentado en Gemini/118 Homologacion Visual y Ergonomica de Novedades con Pallets Panal.md)*

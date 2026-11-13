@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Configuración centralizada de entorno y servicios para Pallets Wipes PC
  * Sigue el estándar corporativo MD5 Kimberly-Clark
  */
@@ -124,6 +124,66 @@ export const formatearFechaVisual = (fechaRaw?: string | Date | null): string =>
 export const getMaxTarimasPorMaquina = (_noMaquina?: number): number => {
   return 38;
 };
+
+export interface VersionNovedadItem {
+  id: string;
+  titulo: string;
+  descripcion: string;
+  tag: string;
+  color: 'purple' | 'emerald' | 'amber' | 'cyan' | 'blue';
+}
+
+export const NOVEDADES_VERSION: VersionNovedadItem[] = [
+  {
+    id: 'net10',
+    titulo: 'Actualización a .NET 10 LTS',
+    descripcion: 'Backend Web API modernizado en .NET 10 con ejecución Side-by-Side y alto desempeño.',
+    tag: 'PLATAFORMA',
+    color: 'purple'
+  },
+  {
+    id: 'temas15',
+    titulo: 'Catálogo de 15 Temas MD5 Kimberly-Clark',
+    descripcion: 'Suite completa de 4 temas oscuros, 3 blancos y 8 de color con ventana para 10 temas simultáneos.',
+    tag: 'DISEÑO',
+    color: 'emerald'
+  },
+  {
+    id: 'iis_map',
+    titulo: 'Mapeo Dinámico de Servidor IIS',
+    descripcion: 'Solución del mapeo dinámico del servidor IIS en configuración y sincronización automática de accesos directos.',
+    tag: 'CONECTIVIDAD',
+    color: 'blue'
+  },
+  {
+    id: 'wipes_rules',
+    titulo: 'Reglas Industriales Wipes (38 Tarimas / 2 Líneas)',
+    descripcion: 'Blindaje estricto de 38 tarimas por vale y captura compartida para Línea 1 y Línea 2 con hora manual.',
+    tag: 'PRODUCCIÓN',
+    color: 'cyan'
+  },
+  {
+    id: 'shortcuts',
+    titulo: 'Sincronización Universal de Accesos Directos',
+    descripcion: 'Sincronización universal de accesos directos en Escritorio y Barra de Tareas en Windows 10 y 11.',
+    tag: 'WINDOWS',
+    color: 'cyan'
+  },
+  {
+    id: 'installer',
+    titulo: 'Instalador Todo-en-Uno v1.0.2 en C:\\PublishIIS',
+    descripcion: 'Detección automática e insensible a mayúsculas/minúsculas y distribución en la raíz del servidor IIS.',
+    tag: 'SETUP',
+    color: 'emerald'
+  },
+  {
+    id: 'kiosk',
+    titulo: 'Purga Automática de Sesiones en Quiosco',
+    descripcion: 'Purga automática de sesiones inactivas de Edge en terminales de planta para evitar saturación de memoria.',
+    tag: 'RENDIMIENTO',
+    color: 'amber'
+  }
+];
 
 export const APP_CONFIG = {
   appName: 'Pallets Wipes PC',

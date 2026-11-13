@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
   Boxes, 
@@ -11,44 +11,43 @@ import {
   Palette, 
   CheckCircle2, 
   Printer,
+  Sparkles,
+  X,
   CornerDownLeft,
   RotateCw,
   ClipboardCheck,
-  UserCheck,
-  Info,
-  Sparkles,
-  X
+  UserCheck
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useProduction } from '../../context/ProductionContext';
 import { useTheme } from '../../context/ThemeContext';
-import { APP_CONFIG } from '../../config';
+import { APP_CONFIG, NOVEDADES_VERSION } from '../../config';
 import { impresionService } from '../../services/impresionService';
 
 export const Sidebar: React.FC = () => {
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const [showThemePicker, setShowThemePicker] = useState<boolean>(false);
-  const [showReleaseNotes, setShowReleaseNotes] = useState<boolean>(false);
+  const [showNovedades, setShowNovedades] = useState<boolean>(false);
   const [folioInput, setFolioInput] = useState<string>('');
   const [reprinting, setReprinting] = useState<boolean>(false);
   const inputFolioRef = useRef<HTMLInputElement>(null);
   const lastPrintTimeRef = useRef<number>(0);
-  const releaseNotesRef = useRef<HTMLDivElement>(null);
+  const novedadesRef = useRef<HTMLDivElement>(null);
 
   const { printerStatus, esGerencia } = useProduction();
   const { theme, setTheme, availableThemes } = useTheme();
 
-  // Cerrar notas de la versión al hacer clic fuera del panel
+  // Cerrar panel de novedades al hacer clic fuera
   useEffect(() => {
-    if (!showReleaseNotes) return;
+    if (!showNovedades) return;
     const handleClickOutside = (e: MouseEvent) => {
-      if (releaseNotesRef.current && !releaseNotesRef.current.contains(e.target as Node)) {
-        setShowReleaseNotes(false);
+      if (novedadesRef.current && !novedadesRef.current.contains(e.target as Node)) {
+        setShowNovedades(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showReleaseNotes]);
+  }, [showNovedades]);
 
   // Atajo de teclado global F9 para enfocar rápidamente la reimpresión por ID (solo en producción)
   useEffect(() => {
@@ -68,7 +67,7 @@ export const Sidebar: React.FC = () => {
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [isCollapsed]);
+  }, [isCollapsed, esGerencia]);
 
   const ejecutarReimpresion = async (folioStr: string) => {
     const clean = folioStr.trim();
@@ -510,150 +509,153 @@ export const Sidebar: React.FC = () => {
         )}
       </div>
 
-      {/* Pie del Sidebar: Versión Destacada y Novedades */}
+      {/* Pie del Sidebar: Versión y Novedades */}
       <div 
-        ref={releaseNotesRef}
-        className="p-3 border-t bg-black/15 relative"
+        ref={novedadesRef}
+        className="p-3 border-t bg-black/20 relative"
         style={{ borderColor: 'var(--chrome-border, #334155)' }}
       >
-        {/* Panel Desplegable de Novedades de la Versión */}
-        {showReleaseNotes && (
+        {!isCollapsed ? (
+          <button
+            type="button"
+            onClick={() => setShowNovedades(!showNovedades)}
+            className={`
+              w-full flex items-center justify-between p-2 rounded-xl border transition-all cursor-pointer group shadow-xs
+              ${showNovedades 
+                ? 'bg-sky-600/30 border-cyan-400/60 ring-2 ring-cyan-400/30' 
+                : 'bg-white/5 hover:bg-white/10 border-white/10 hover:border-sky-400/40'}
+            `}
+            title="Clic para ver Novedades de la Versión"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              {/* Indicador LED de la Impresora Zebra */}
+              <div className="relative shrink-0 flex items-center justify-center">
+                <span 
+                  className={`w-3 h-3 rounded-full ${
+                    printerStatus.conectada 
+                      ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)] ring-2 ring-emerald-500/30' 
+                      : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.9)] ring-2 ring-red-500/30'
+                  } animate-pulse`} 
+                />
+              </div>
+              
+              {/* Número de Versión en Grande y Destacado */}
+              <div className="flex flex-col text-left truncate">
+                <span className="text-sm font-black text-white tracking-tight leading-tight group-hover:text-cyan-300 transition-colors">
+                  {APP_CONFIG.version}
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium">
+                  Novedades de versión
+                </span>
+              </div>
+            </div>
+
+            {/* Icono interactivo desplegable */}
+            <div className="flex items-center gap-1 text-slate-400 group-hover:text-white transition-colors shrink-0">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
+              {showNovedades ? <ChevronDown className="w-3.5 h-3.5 text-cyan-400" /> : <ChevronUp className="w-3.5 h-3.5" />}
+            </div>
+          </button>
+        ) : (
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={() => setShowNovedades(!showNovedades)}
+              className={`
+                p-2 rounded-xl border flex flex-col items-center gap-1 cursor-pointer transition-all shadow-xs group
+                ${showNovedades 
+                  ? 'bg-sky-600/30 border-cyan-400/60 ring-2 ring-cyan-400/30' 
+                  : 'bg-white/5 hover:bg-white/10 border-white/10 hover:border-cyan-400/40'}
+              `}
+              title={`${APP_CONFIG.version} - Clic para ver Novedades`}
+            >
+              <span 
+                className={`w-2.5 h-2.5 rounded-full ${
+                  printerStatus.conectada 
+                    ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]' 
+                    : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.9)]'
+                } animate-pulse`} 
+              />
+              <span className="text-[10px] font-black text-cyan-300 leading-none group-hover:text-white">
+                V{APP_CONFIG.version.replace(/[^0-9]/g, '') || '13'}
+              </span>
+            </button>
+          </div>
+        )}
+
+        {/* Panel Flotante de Novedades de la Versión */}
+        {showNovedades && (
           <div 
             className={`
-              absolute bottom-[calc(100%+8px)] z-50 rounded-xl shadow-2xl border backdrop-blur-md transition-all duration-150 animate-in fade-in slide-in-from-bottom-2
-              ${isCollapsed ? 'left-2 w-72' : 'left-2 right-2'}
+              absolute mb-2 bg-slate-900/98 backdrop-blur-2xl border border-sky-500/40 rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.85)] z-50 text-xs ring-1 ring-cyan-500/30 overflow-hidden flex flex-col
+              ${isCollapsed ? 'bottom-2 left-full ml-3 w-84' : 'bottom-full left-2 right-2'}
             `}
-            style={{
-              backgroundColor: 'var(--chrome-card-bg, #1e293b)',
-              borderColor: 'var(--chrome-accent, #3b82f6)',
-              color: 'var(--chrome-text, #f8fafc)',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4)'
-            }}
+            style={{ maxHeight: '480px' }}
           >
             {/* Cabecera del Panel */}
-            <div 
-              className="flex items-center justify-between p-3 border-b"
-              style={{ borderColor: 'var(--chrome-border, #334155)' }}
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="w-6 h-6 rounded-lg bg-sky-500/20 border border-sky-400/30 flex items-center justify-center text-sky-400 shrink-0">
-                  <Sparkles className="w-3.5 h-3.5" />
+            <div className="p-3 bg-gradient-to-r from-sky-950/80 via-slate-900 to-indigo-950/80 border-b border-white/10 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center shadow-xs">
+                  <Sparkles className="w-3.5 h-3.5 text-white" />
                 </div>
-                <div className="truncate">
-                  <h4 className="text-xs font-black tracking-wide text-white truncate">
-                    {APP_CONFIG.versionNotesTitle || `Novedades ${APP_CONFIG.version}`}
+                <div>
+                  <h4 className="font-bold text-xs text-white leading-tight">
+                    Novedades de la Versión
                   </h4>
-                  <p className="text-[10px] text-sky-300 font-mono">
-                    Build Oficial MD5 Kimberly-Clark
-                  </p>
+                  <span className="text-[10px] text-cyan-300 font-mono font-semibold">
+                    {APP_CONFIG.version} • MD5
+                  </span>
                 </div>
               </div>
               <button
-                onClick={() => setShowReleaseNotes(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
-                title="Cerrar"
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowNovedades(false);
+                }}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                title="Cerrar panel de novedades"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Lista de Novedades */}
-            <div className="p-3 max-h-60 overflow-y-auto space-y-2 text-xs">
-              {APP_CONFIG.versionReleaseNotes && APP_CONFIG.versionReleaseNotes.length > 0 ? (
-                APP_CONFIG.versionReleaseNotes.map((nota, idx) => (
-                  <div key={idx} className="flex items-start gap-2 text-slate-300 leading-snug">
-                    <span className="w-1.5 h-1.5 rounded-full bg-sky-400 mt-1.5 shrink-0 shadow-[0_0_6px_rgba(56,189,248,0.8)]" />
-                    <span className="text-[11px] select-text">{nota}</span>
+            {/* Lista de Novedades scrolleable */}
+            <div className="p-3 space-y-2.5 overflow-y-auto max-h-[380px] divide-y divide-white/5">
+              {NOVEDADES_VERSION.map((item) => (
+                <div key={item.id} className="pt-2 first:pt-0 space-y-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-[9px] font-black px-1.5 py-0.2 rounded uppercase tracking-wider border ${
+                      item.color === 'purple' ? 'bg-purple-950/80 text-purple-300 border-purple-500/30' :
+                      item.color === 'emerald' ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/30' :
+                      item.color === 'amber' ? 'bg-amber-950/80 text-amber-300 border-amber-500/30' :
+                      item.color === 'cyan' ? 'bg-cyan-950/80 text-cyan-300 border-cyan-500/30' :
+                      'bg-blue-950/80 text-blue-300 border-blue-500/30'
+                    }`}>
+                      {item.tag}
+                    </span>
+                    <span className="font-bold text-[11.5px] text-slate-100 leading-tight">
+                      {item.titulo}
+                    </span>
                   </div>
-                ))
-              ) : (
-                <p className="text-[11px] text-slate-400 italic">No hay notas registradas para esta versión.</p>
-              )}
-            </div>
-
-            {/* Pie del Panel */}
-            <div 
-              className="px-3 py-2 border-t bg-black/20 flex items-center justify-between text-[10px] text-slate-400"
-              style={{ borderColor: 'var(--chrome-border, #334155)' }}
-            >
-              <span className="font-mono">{APP_CONFIG.appName}</span>
-              <span className="font-bold text-sky-400">{APP_CONFIG.version}</span>
-            </div>
-          </div>
-        )}
-
-        {!isCollapsed ? (
-          <div className="flex items-center justify-between gap-2">
-            {/* Versión en grande y destacada */}
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div 
-                className="relative flex items-center justify-center shrink-0 cursor-pointer"
-                onClick={() => setShowReleaseNotes(!showReleaseNotes)}
-                title={printerStatus.conectada ? 'Zebra PrintBridge Conectado' : 'Zebra PrintBridge Desconectado'}
-              >
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-500/20 to-blue-600/30 border border-sky-400/30 flex items-center justify-center text-sky-400 shadow-sm hover:scale-105 transition-transform">
-                  <Info className="w-4 h-4" />
+                  <p className="text-[10.5px] text-slate-300 leading-relaxed pl-1">
+                    {item.descripcion}
+                  </p>
                 </div>
-                {/* Indicador discreto de estado de impresora */}
-                <span 
-                  className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-slate-900 ${printerStatus.conectada ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]'}`} 
-                  title={printerStatus.conectada ? 'Impresora Térmica En Línea' : 'Impresora Fuera de Línea'}
-                />
+              ))}
+            </div>
+
+            {/* Pie del Panel: Estado de Zebra */}
+            <div className="px-3 py-2 bg-black/30 border-t border-white/10 flex items-center justify-between text-[10px] text-slate-400 shrink-0">
+              <div className="flex items-center gap-1.5">
+                <Printer className="w-3.5 h-3.5 text-slate-400" />
+                <span>Servicio Zebra (9100):</span>
               </div>
-
-              <button
-                onClick={() => setShowReleaseNotes(!showReleaseNotes)}
-                className="flex flex-col text-left group min-w-0 cursor-pointer"
-                title="Clic para desplegar las novedades de la versión"
-              >
-                <div className="flex items-baseline gap-1.5 leading-none">
-                  <span className="text-sm font-extrabold tracking-tight text-white group-hover:text-sky-300 transition-colors">
-                    Versión
-                  </span>
-                  <span className="text-xl font-black text-cyan-400 group-hover:text-cyan-300 drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]">
-                    {APP_CONFIG.version.replace(/[^0-9]/g, '') || APP_CONFIG.version}
-                  </span>
-                </div>
-                <span className="text-[10px] text-sky-400 font-bold group-hover:underline mt-1 truncate">
-                  {showReleaseNotes ? 'Ocultar notas' : 'Ver novedades'}
-                </span>
-              </button>
-            </div>
-
-            {/* Botón desplegar/ocultar comentarios de versión */}
-            <button
-              onClick={() => setShowReleaseNotes(!showReleaseNotes)}
-              className={`p-1.5 rounded-lg border transition-all duration-150 shrink-0 cursor-pointer ${
-                showReleaseNotes 
-                  ? 'bg-sky-500 text-white border-sky-400 shadow-[0_0_10px_rgba(14,165,233,0.5)]' 
-                  : 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/10 hover:text-white'
-              }`}
-              title={showReleaseNotes ? 'Ocultar novedades de la versión' : 'Desplegar novedades de la versión'}
-              aria-label="Desplegar notas de versión"
-            >
-              {showReleaseNotes ? (
-                <ChevronDown className="w-4 h-4 transition-transform duration-200" />
-              ) : (
-                <ChevronUp className="w-4 h-4 transition-transform duration-200" />
-              )}
-            </button>
-          </div>
-        ) : (
-          /* Versión compacta cuando el sidebar está colapsado */
-          <div className="flex flex-col items-center gap-1">
-            <button
-              onClick={() => setShowReleaseNotes(!showReleaseNotes)}
-              className="relative p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 hover:border-sky-400/50 transition-all flex flex-col items-center justify-center group cursor-pointer"
-              title={`${APP_CONFIG.version} - Clic para ver novedades`}
-            >
-              <span className="text-xs font-black text-cyan-300 bg-cyan-950/80 px-1.5 py-0.5 rounded border border-cyan-400/40 shadow-xs">
-                {APP_CONFIG.version.replace(/Versión\s*/i, 'V')}
+              <span className={`font-bold flex items-center gap-1 ${printerStatus.conectada ? 'text-emerald-400' : 'text-red-400'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${printerStatus.conectada ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                {printerStatus.conectada ? 'Conectado' : 'Sin conexión'}
               </span>
-              <span 
-                className={`w-2 h-2 rounded-full mt-1 ${printerStatus.conectada ? 'bg-emerald-500' : 'bg-red-500'}`} 
-                title={printerStatus.conectada ? 'Impresora Conectada' : 'Impresora Desconectada'}
-              />
-            </button>
+            </div>
           </div>
         )}
       </div>

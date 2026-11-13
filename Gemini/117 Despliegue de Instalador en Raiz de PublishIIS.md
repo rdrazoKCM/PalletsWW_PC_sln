@@ -45,3 +45,4 @@ El usuario requirió ubicar el instalador oficial compilado del cliente (`Setup_
 
 * **Validación de Archivo:** Se ejecutó `(Get-Item 'C:\PublishIIS\Setup_PalletsWW_Cliente.exe').VersionInfo` comprobando que el hash y la versión corresponden exactamente a la última compilación.
 * **Codificación:** Archivo generado con **UTF-8 con BOM** (`\uFEFF`).
+
