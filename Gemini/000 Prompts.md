@@ -83,3 +83,7 @@ Colocar la actualización del instalador Setup_PalletsWW_Cliente.exe directament
 # 018 Homologación Visual de Novedades de la Versión con Pallets Pañal
 Homologar el diseño visual y la ergonomía del panel de novedades de la versión en la barra lateral con la interfaz de Pallets Pañal, integrando tarjeta flotante con efecto blur y sombra profunda, cabecera con degradado y botón de cierre, insignias por categoría (PLATAFORMA, PRODUCCIÓN, DISEÑO, etc.), tipografía jerarquizada y semáforo de estado de conexión del servicio local Zebra (9100).
 *(Documentado en Gemini/118 Homologacion Visual y Ergonomica de Novedades con Pallets Panal.md)*
+
+# 019 Publicación General de Cambios a Producción en IIS y GitHub
+Publicar los cambios realizados en la aplicación desplegando Backend Web API en .NET 10 y Frontend Web SPA en React 19 a sus respectivos directorios de IIS (C:\PublishIIS\), verificando la disponibilidad del instalador v1.0.2 y sincronizando los cambios con el repositorio remoto de GitHub.
+*(Documentado en Gemini/119 Publicacion General de Cambios a Produccion en IIS y GitHub.md)*
