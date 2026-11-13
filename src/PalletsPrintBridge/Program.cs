@@ -158,12 +158,10 @@ class Program
                         Thread.Sleep(2500); // Dar tiempo a que Explorer y Shell estén listos
                         if (File.Exists(SettingsFile))
                         {
-                            using var doc = JsonDocument.Parse(File.ReadAllText(SettingsFile, Encoding.UTF8));
-                            string sIp = doc.RootElement.TryGetProperty("serverIp", out var sProp) ? sProp.GetString() ?? "" : "";
-                            int mId = doc.RootElement.TryGetProperty("machineId", out var mProp) ? mProp.GetInt32() : 0;
-                            if (!string.IsNullOrWhiteSpace(sIp))
+                            var cfg = ObtenerConfiguracionActual();
+                            if (!string.IsNullOrWhiteSpace(cfg.ServerIp))
                             {
-                                ActualizarAccesosDirectos(sIp, mId);
+                                ActualizarAccesosDirectos(cfg.ServerIp, cfg.MachineId);
                             }
                         }
                     }
@@ -951,11 +949,18 @@ class Program
             if (!File.Exists(chrome)) chrome = @"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe";
 
             string icoPath = Path.Combine(AppDataDir, "pallets_ww.ico");
+            const string appId = "KCM.PalletsWW";
+            string userDataDir = Path.Combine(AppDataDir, "EdgeData");
+            try
+            {
+                if (!Directory.Exists(userDataDir)) Directory.CreateDirectory(userDataDir);
+            }
+            catch { }
 
             string target = url;
             string args = "";
-            if (File.Exists(edge)) { target = edge; args = $"--app=\"{url}\" --window-name=\"PalletsWW\" --start-maximized"; }
-            else if (File.Exists(chrome)) { target = chrome; args = $"--app=\"{url}\" --window-name=\"PalletsWW\" --start-maximized"; }
+            if (File.Exists(edge)) { target = edge; args = $"--app=\"{url}\" --window-name=\"PalletsWW\" --app-user-model-id=\"{appId}\" --user-data-dir=\"{userDataDir}\" --start-maximized"; }
+            else if (File.Exists(chrome)) { target = chrome; args = $"--app=\"{url}\" --window-name=\"PalletsWW\" --app-user-model-id=\"{appId}\" --user-data-dir=\"{userDataDir}\" --start-maximized"; }
 
             // Consultar si la configuración de la terminal solicitó anclar a barra de tareas
             bool pinTaskbar = true;

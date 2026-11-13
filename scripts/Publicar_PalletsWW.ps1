@@ -93,6 +93,11 @@ if (-not $SkipWeb) {
     if (Test-Path "$distDir\web.config") {
         Copy-Item -Path "$distDir\web.config" -Destination "$webPublishDir\web.config" -Force
     }
+    
+    # Sincronizar instalador si existe en dist
+    if (Test-Path "$distDir\Setup_PalletsWW_Cliente.exe") {
+        Copy-Item -Path "$distDir\Setup_PalletsWW_Cliente.exe" -Destination "$webPublishDir\Setup_PalletsWW_Cliente.exe" -Force
+    }
     Write-Host "-> Frontend Web React actualizado con exito (Cero caida de clientes)." -ForegroundColor Green
 }
 

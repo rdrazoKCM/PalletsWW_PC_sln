@@ -548,6 +548,13 @@ public class MainForm : Form
             return;
         }
 
+        if (string.IsNullOrWhiteSpace(txtServerIp.Text))
+        {
+            MessageBox.Show("Por favor ingrese la IP o nombre de host del servidor central de IIS.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            txtServerIp.Focus();
+            return;
+        }
+
         string printMode = rbNetwork.Checked ? "Red" : "USB";
         string printerIp = txtPrinterIp.Text.Trim();
         int printerPort = int.TryParse(txtPrinterPort.Text.Trim(), out int p) ? p : 9100;

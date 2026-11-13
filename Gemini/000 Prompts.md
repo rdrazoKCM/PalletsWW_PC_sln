@@ -59,3 +59,6 @@ El día de hoy tuve un problema con la PC que uso como servidor de IIS (IP 10.26
 
 # 011 Publicación de Cambios tras Verificación de Integridad
 Publica los cambios, pero antes revisa que funcione correctamente y verifica que no se haya modificado ninguna otra funcionalidad.
+
+# 012 Revisión y Corrección de Cambio de Servidor IIS en el Instalador del Cliente
+Tengo una duda: ya hiciste las modificaciones necesarias para cambiar de servidor de IIS, pero yo tampoco podía cambiar de servidor de IIS incluso ejecutando otra vez el instalador (le colocaba la IP y no la agarraba). Revisa eso también y sé cuidadoso con lo que mueves, no quiero que se descomponga o ya no imprima.

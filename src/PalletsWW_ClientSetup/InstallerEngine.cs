@@ -35,6 +35,21 @@ public static class InstallerEngine
         new(11, "POCKET", "Línea Pocket Wipes (POCKET)")
     };
 
+    public static bool TryGetJsonProp(JsonElement element, string propName, out JsonElement value)
+    {
+        if (element.TryGetProperty(propName, out value)) return true;
+        foreach (var property in element.EnumerateObject())
+        {
+            if (string.Equals(property.Name, propName, StringComparison.OrdinalIgnoreCase))
+            {
+                value = property.Value;
+                return true;
+            }
+        }
+        value = default;
+        return false;
+    }
+
     public static List<string> DetectLocalUserProfiles()
     {
         var users = new List<string>();
@@ -91,7 +106,7 @@ public static class InstallerEngine
             if (File.Exists(sharedCfg))
             {
                 using var doc = JsonDocument.Parse(File.ReadAllText(sharedCfg, Encoding.UTF8));
-                if (doc.RootElement.TryGetProperty("machineId", out var prop) && prop.GetInt32() > 0)
+                if (TryGetJsonProp(doc.RootElement, "machineId", out var prop) && prop.GetInt32() > 0)
                 {
                     return (prop.GetInt32(), "settings.json (ProgramData)");
                 }
@@ -105,7 +120,7 @@ public static class InstallerEngine
             if (File.Exists(localCfg))
             {
                 using var doc = JsonDocument.Parse(File.ReadAllText(localCfg, Encoding.UTF8));
-                if (doc.RootElement.TryGetProperty("machineId", out var prop) && prop.GetInt32() > 0)
+                if (TryGetJsonProp(doc.RootElement, "machineId", out var prop) && prop.GetInt32() > 0)
                 {
                     return (prop.GetInt32(), "settings.json (LocalAppData)");
                 }
@@ -142,7 +157,7 @@ public static class InstallerEngine
             if (File.Exists(sharedCfg))
             {
                 using var doc = JsonDocument.Parse(File.ReadAllText(sharedCfg, Encoding.UTF8));
-                if (doc.RootElement.TryGetProperty("serverIp", out var prop))
+                if (TryGetJsonProp(doc.RootElement, "serverIp", out var prop))
                 {
                     string ip = prop.GetString() ?? "";
                     if (!string.IsNullOrEmpty(ip)) return ip.Trim();
@@ -174,9 +189,9 @@ public static class InstallerEngine
             if (File.Exists(sharedCfg))
             {
                 using var doc = JsonDocument.Parse(File.ReadAllText(sharedCfg, Encoding.UTF8));
-                string mode = doc.RootElement.TryGetProperty("printMode", out var mProp) ? mProp.GetString() ?? "USB" : "USB";
-                string ip = doc.RootElement.TryGetProperty("printerIp", out var ipProp) ? ipProp.GetString() ?? "" : "";
-                int port = doc.RootElement.TryGetProperty("printerPort", out var pProp) && pProp.GetInt32() > 0 ? pProp.GetInt32() : 9100;
+                string mode = TryGetJsonProp(doc.RootElement, "printMode", out var mProp) ? mProp.GetString() ?? "USB" : "USB";
+                string ip = TryGetJsonProp(doc.RootElement, "printerIp", out var ipProp) ? ipProp.GetString() ?? "" : "";
+                int port = TryGetJsonProp(doc.RootElement, "printerPort", out var pProp) && pProp.GetInt32() > 0 ? pProp.GetInt32() : 9100;
                 return (mode, ip, port);
             }
         }
@@ -406,14 +421,14 @@ public static async Task<bool> InstallAsync(
                 string settingsJson = Path.Combine(ProgramDataFolder, "settings.json");
                 var cfgObj = new
                 {
-                    machineId = machine.Id,
-                    machineName = machine.Code,
-                    serverIp = serverIp,
-                    printerName = "",
-                    printMode = string.IsNullOrWhiteSpace(printMode) ? "USB" : printMode,
-                    printerIp = printerIp ?? "",
-                    printerPort = printerPort > 0 ? printerPort : 9100,
-                    pinTaskbar = pinTaskbar
+                    MachineId = machine.Id,
+                    MachineName = machine.Code,
+                    ServerIp = serverIp,
+                    PrinterName = "",
+                    PrintMode = string.IsNullOrWhiteSpace(printMode) ? "USB" : printMode,
+                    PrinterIp = printerIp ?? "",
+                    PrinterPort = printerPort > 0 ? printerPort : 9100,
+                    PinTaskbar = pinTaskbar
                 };
                 string jsonStr = JsonSerializer.Serialize(cfgObj, new JsonSerializerOptions { WriteIndented = true });
                 try { File.WriteAllText(Path.Combine(ProgramDataFolder, "Servidor.txt"), serverIp, Encoding.UTF8); } catch { }
@@ -527,6 +542,11 @@ public static async Task<bool> InstallAsync(
                 if (Directory.Exists(netDir))
                 {
                     try { Directory.Delete(netDir, true); } catch { }
+                }
+                string sessDir = Path.Combine(edgeData, @"Default\Sessions");
+                if (Directory.Exists(sessDir))
+                {
+                    try { Directory.Delete(sessDir, true); } catch { }
                 }
                 progress("-> Almacenamiento local y cookies de Edge purgados (eliminando IPs obsoletas)...", 53);
             }
@@ -772,6 +792,7 @@ public static async Task<bool> InstallAsync(
                 try { File.Delete(oldCommon); } catch { }
             }
             LimpiarAccesosDuplicados(commonDesk, shortcutName);
+            ActualizarLnkExistentesEnDir(commonDesk, browserPath, args, icoPath, serverIp, machineId, shortcutName);
             progress("-> Escritorio Público depurado (evitando iconos duplicados).", 83);
         }
 
@@ -782,6 +803,7 @@ public static async Task<bool> InstallAsync(
             string commonLnk = Path.Combine(commonProg, shortcutName);
             CopiarYPermitirArchivo(masterLnk, commonLnk);
             SetShortcutAppUserModelId(commonLnk, appId);
+            ActualizarLnkExistentesEnDir(commonProg, browserPath, args, icoPath, serverIp, machineId, shortcutName);
             progress("-> Acceso colocado en Menú Inicio Público.", 84);
         }
 
@@ -813,6 +835,7 @@ public static async Task<bool> InstallAsync(
                 string uDeskLnk = Path.Combine(uDesk, shortcutName);
                 CopiarYPermitirArchivo(masterLnk, uDeskLnk);
                 SetShortcutAppUserModelId(uDeskLnk, appId);
+                ActualizarLnkExistentesEnDir(uDesk, browserPath, args, icoPath, serverIp, machineId, shortcutName);
             }
 
             // Menú Inicio del usuario
@@ -822,6 +845,7 @@ public static async Task<bool> InstallAsync(
                 string uProgLnk = Path.Combine(uProg, shortcutName);
                 CopiarYPermitirArchivo(masterLnk, uProgLnk);
                 SetShortcutAppUserModelId(uProgLnk, appId);
+                ActualizarLnkExistentesEnDir(uProg, browserPath, args, icoPath, serverIp, machineId, shortcutName);
             }
 
             // Barra de Tareas (TaskBar Pinned)
@@ -829,6 +853,7 @@ public static async Task<bool> InstallAsync(
             if (Directory.Exists(uTb))
             {
                 DesanclarAccesosDuplicadosTaskbar(uTb, shortcutName);
+                ActualizarLnkExistentesEnDir(uTb, browserPath, args, icoPath, serverIp, machineId, shortcutName);
                 if (pinTaskbar)
                 {
                     string uTbLnk = Path.Combine(uTb, shortcutName);
@@ -889,6 +914,13 @@ public static async Task<bool> InstallAsync(
                 {
                     AnclarABarraDeTareasShell(dPath, shortcutName);
                 }
+                string activeAppData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                string activeTb = Path.Combine(activeAppData, @"Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar");
+                if (Directory.Exists(activeTb))
+                {
+                    ActualizarLnkExistentesEnDir(activeTb, browserPath, args, icoPath, serverIp, machineId, shortcutName);
+                }
+
                 progress("-> Acceso fijado a la barra de tareas exitosamente.", 88);
             }
             catch { }
@@ -1211,8 +1243,9 @@ public static async Task<bool> InstallAsync(
                     string fn = Path.GetFileName(lnk);
 
                     // Solo actualizar si es un acceso directo de la aplicación WEB
-                    bool esAccesoWeb = curArgs.Contains(":5106") || curArgs.Contains(":5004") ||
+                    bool esAccesoWeb = curArgs.Contains(":5106") || curArgs.Contains(":5004") || curArgs.Contains(":5105") ||
                                        curTarget.Contains(":5106") || curTarget.Contains(":5004") ||
+                                       fn.Contains("Pallet", StringComparison.OrdinalIgnoreCase) ||
                                        (fn.Equals(currentLnkName, StringComparison.OrdinalIgnoreCase) && 
                                         (curTarget.Contains("msedge", StringComparison.OrdinalIgnoreCase) || 
                                          curTarget.Contains("chrome", StringComparison.OrdinalIgnoreCase)));
