@@ -100,9 +100,18 @@ El agente debe prestar especial atención a las reglas operativas de Wipes que *
 
 ## 6. Estándar de Documentación y Bitácora de Prompts
 
-1. **`Gemini/000 Prompts.md`:**  
-   * Bitácora cronológica con encabezados `# <Número de 3 Dígitos> <Título>`.
-   * Contiene **únicamente** la petición del usuario sintetizada y con ortografía corregida.
-   * Sin detalles de código ni volcados técnicos.
-2. **Archivos Temáticos en `Gemini/`:**  
-   * Todo plan de arquitectura, optimización o migración debe documentarse en archivos dedicados (ej. `Gemini/115 Plan de Migracion de Blazor a React 19.md`).
+1. **`Gemini/000 Prompts.md` — Bitácora Exclusiva de Prompts (Peticiones del Usuario):**  
+   * Este archivo contiene **ÚNICAMENTE** las solicitudes del usuario organizadas cronológicamente con encabezados `# <Número de 3 Dígitos> <Título>`.
+   * **Prohibido volcar aquí las acciones técnicas ejecutadas o detalles de código:** Para eso están los archivos técnicos dedicados.
+   * **Corrección Ortográfica y Síntesis:** Si el mensaje del usuario tiene erratas o fue tecleado rápidamente, el agente debe corregir ortografía y sintetizar claramente los puntos solicitados.
+   * Al final de cada prompt, incluir la referencia corta al archivo `.md` donde se documentó la solución técnica (ej. `*(Documentado en Gemini/116...)*`).
+
+2. **Documentación Técnica Consecutiva en `Gemini/` (`116 X.md`, `117 X.md`, etc.):**  
+   * **Regla Obligatoria:** Ante cada instrucción, requerimiento o cambio solicitado por el usuario en el chat, además de registrar el prompt en `Gemini/000 Prompts.md`, el agente **DEBE documentar a detalle lo que se realizó** en un archivo markdown numerado de forma consecutiva (ej. `Gemini/116 Temas Visuales MD5 Migracion a NET 10 y Ajustes Ergonomicos.md`, `Gemini/117 X.md`, `Gemini/118 X.md`, etc.).
+   * **Contenido Obligatorio de cada Documento:**
+     - Resumen ejecutivo de la solicitud y objetivo industrial.
+     - Justificación técnica y arquitectura aplicada.
+     - Detalle de archivos y componentes creados o modificados.
+     - Pruebas de verificación de compilación y validación funcional.
+     - Estado final de despliegue en IIS, instalador y versión resultante.
+   * **Codificación Estricta:** Todos los archivos generados deben guardarse **obligatoriamente en UTF-8 con BOM** (`\uFEFF`).

@@ -12,9 +12,9 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <AssemblyName>Setup_PalletsWW_Cliente</AssemblyName>
     <RootNamespace>PalletsWW_ClientSetup</RootNamespace>
-    <Version>1.0.1</Version>
-    <FileVersion>1.0.1.0</FileVersion>
-    <InformationalVersion>1.0.1</InformationalVersion>
+    <Version>1.0.2</Version>
+    <FileVersion>1.0.2.0</FileVersion>
+    <InformationalVersion>1.0.2</InformationalVersion>
     <Company>Kimberly-Clark de Mexico</Company>
     <Product>Pallets Wet Wipes - Instalador Cliente</Product>
     <Description>Instalador Todo-en-Uno del Cliente de Impresion Zebra y Accesos Directos Pallets WW</Description>

@@ -127,15 +127,14 @@ export const getMaxTarimasPorMaquina = (_noMaquina?: number): number => {
 
 export const APP_CONFIG = {
   appName: 'Pallets Wipes PC',
-  version: 'Versión 12',
-  versionNotesTitle: 'Novedades de la Versión 12',
+  version: 'Versión 13',
+  versionNotesTitle: 'Novedades de la Versión 13',
   versionReleaseNotes: [
-    'Actualización del Backend Web API a la plataforma .NET 10 LTS.',
-    'Catálogo ampliado de 15 temas visuales oficiales MD5 Kimberly-Clark (4 oscuros, 3 blancos y 8 de color).',
-    'Mapeo dinámico y solución del cambio de Servidor IIS en configuración y accesos directos.',
-    'Rediseño ergonómico de barra lateral con número de versión destacado y botón de novedades.',
-    'Sincronización universal de accesos directos para Windows 10 y 11 sin degradar a Edge genérico.',
-    'Purga automática de sesiones inactivas de Edge en terminales de planta.'
+    'Selector de temas optimizado con visualización directa de 10 temas en pantalla.',
+    'Indicador numérico de versión en gran formato con alto contraste y visibilidad en barra lateral.',
+    'Verificación integral del instalador de terminales v1.0.2 y servicio local Zebra PrintBridge.',
+    'Backend Web API en .NET 10 LTS con suite completa de 15 temas visuales MD5 Kimberly-Clark.',
+    'Estandarización de bitácora técnica consecutiva en AGENTS.md y Gemini/.'
   ],
   planta: 'Planta Tlaxcala - Depto Wipes',
   

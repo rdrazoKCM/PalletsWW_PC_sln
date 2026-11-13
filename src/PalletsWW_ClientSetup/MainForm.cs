@@ -44,7 +44,7 @@ public class MainForm : Form
 
     private void InitializeComponents()
     {
-        this.Text = "Instalador Todo-en-Uno - Pallets Wet Wipes v1.0.1 (Kimberly-Clark)";
+        this.Text = "Instalador Todo-en-Uno - Pallets Wet Wipes v1.0.2 (Kimberly-Clark)";
         this.Size = new Size(660, 940);
         this.StartPosition = FormStartPosition.CenterScreen;
         this.FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -79,7 +79,7 @@ public class MainForm : Form
 
         var lblSubtitle = new Label
         {
-            Text = "Instalador Todo-en-Uno de Terminal y Agente Zebra (USB / Red LAN)   Depto 3   Planta Tlaxcala   v1.0.1",
+            Text = "Instalador Todo-en-Uno de Terminal y Agente Zebra (USB / Red LAN)   Depto 3   Planta Tlaxcala   v1.0.2",
             Font = new Font("Segoe UI", 9f, FontStyle.Regular),
             ForeColor = Color.FromArgb(148, 163, 184),
             Location = new Point(21, 46),

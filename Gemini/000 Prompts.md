@@ -72,5 +72,10 @@ Publica los cambios y actualiza la versión (+1), registrando las notas y noveda
 # 015 Integración de Nuevos Temas Visuales MD5 y Migración de Backend a .NET 10 LTS
 Integrar a la aplicación la suite completa de nuevos temas visuales creados en Pallets Pañal y actualizar la plataforma del backend Web API a .NET 10 LTS homologando el desempeño y estabilidad de ambas aplicaciones.
 
+# 016 Ajuste de Altura en Selector de Temas, Mayor Visibilidad de Versión, Verificación de Instalador y Bitácora Consecutiva en AGENTS.md
+Ajustar el selector de temas de la barra lateral para mostrar 10 temas visibles al desplegarse; verificar que no exista selector de temas duplicado en la cabecera; aumentar aún más el tamaño y visibilidad del número de versión en el pie de la barra lateral; verificar el correcto funcionamiento del instalador de terminales; incorporar en AGENTS.md la regla de documentación técnica consecutiva en archivos Gemini/116 X.md, 117 X.md; y publicar los cambios con incremento de versión (+1).
+*(Documentado en Gemini/116 Ajustes Ergonomicos de Temas Version y Bitacora Consecutiva.md)*
+
+
 
 

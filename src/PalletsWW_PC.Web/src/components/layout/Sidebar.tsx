@@ -476,7 +476,7 @@ export const Sidebar: React.FC = () => {
                   <span className="text-[9.5px] font-mono text-slate-400">MD5</span>
                 </div>
 
-                <div className="space-y-1 max-h-72 overflow-y-auto pr-0.5">
+                <div className="space-y-1 max-h-[440px] overflow-y-auto pr-0.5">
                   {availableThemes.map(t => (
                     <button
                       key={t.id}
@@ -603,13 +603,18 @@ export const Sidebar: React.FC = () => {
 
               <button
                 onClick={() => setShowReleaseNotes(!showReleaseNotes)}
-                className="flex flex-col text-left group min-w-0"
+                className="flex flex-col text-left group min-w-0 cursor-pointer"
                 title="Clic para desplegar las novedades de la versión"
               >
-                <span className="text-sm font-black tracking-tight text-white group-hover:text-sky-300 transition-colors flex items-center gap-1.5 leading-none">
-                  {APP_CONFIG.version}
-                </span>
-                <span className="text-[10px] text-sky-400 font-semibold group-hover:underline mt-0.5 truncate">
+                <div className="flex items-baseline gap-1.5 leading-none">
+                  <span className="text-sm font-extrabold tracking-tight text-white group-hover:text-sky-300 transition-colors">
+                    Versión
+                  </span>
+                  <span className="text-xl font-black text-cyan-400 group-hover:text-cyan-300 drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]">
+                    {APP_CONFIG.version.replace(/[^0-9]/g, '') || APP_CONFIG.version}
+                  </span>
+                </div>
+                <span className="text-[10px] text-sky-400 font-bold group-hover:underline mt-1 truncate">
                   {showReleaseNotes ? 'Ocultar notas' : 'Ver novedades'}
                 </span>
               </button>
@@ -618,7 +623,7 @@ export const Sidebar: React.FC = () => {
             {/* Botón desplegar/ocultar comentarios de versión */}
             <button
               onClick={() => setShowReleaseNotes(!showReleaseNotes)}
-              className={`p-1.5 rounded-lg border transition-all duration-150 shrink-0 ${
+              className={`p-1.5 rounded-lg border transition-all duration-150 shrink-0 cursor-pointer ${
                 showReleaseNotes 
                   ? 'bg-sky-500 text-white border-sky-400 shadow-[0_0_10px_rgba(14,165,233,0.5)]' 
                   : 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/10 hover:text-white'
@@ -638,10 +643,10 @@ export const Sidebar: React.FC = () => {
           <div className="flex flex-col items-center gap-1">
             <button
               onClick={() => setShowReleaseNotes(!showReleaseNotes)}
-              className="relative p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 hover:border-sky-400/50 transition-all flex flex-col items-center justify-center group"
+              className="relative p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 hover:border-sky-400/50 transition-all flex flex-col items-center justify-center group cursor-pointer"
               title={`${APP_CONFIG.version} - Clic para ver novedades`}
             >
-              <span className="text-[11px] font-black text-sky-400 group-hover:text-sky-300">
+              <span className="text-xs font-black text-cyan-300 bg-cyan-950/80 px-1.5 py-0.5 rounded border border-cyan-400/40 shadow-xs">
                 {APP_CONFIG.version.replace(/Versión\s*/i, 'V')}
               </span>
               <span 
