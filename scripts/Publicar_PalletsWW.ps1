@@ -55,7 +55,7 @@ if ($BuildInstaller) {
 # ------------------------------------------------------------------------------
 if (-not $SkipApi) {
     Write-Host "
-[1/2] Compilando Backend API (.NET 8 LTS)..." -ForegroundColor Yellow
+[1/2] Compilando Backend API (.NET 10 LTS)..." -ForegroundColor Yellow
     $apiProj = Join-Path $repoRoot "src\PalletsWW_PC.Api\PalletsWW_PC.Api.csproj"
     $apiStaging = Join-Path $repoRoot "src\PalletsWW_PC.Api\bin\Publish"
     

@@ -130,10 +130,11 @@ export const APP_CONFIG = {
   version: 'Versión 12',
   versionNotesTitle: 'Novedades de la Versión 12',
   versionReleaseNotes: [
+    'Actualización del Backend Web API a la plataforma .NET 10 LTS.',
+    'Catálogo ampliado de 15 temas visuales oficiales MD5 Kimberly-Clark (4 oscuros, 3 blancos y 8 de color).',
     'Mapeo dinámico y solución del cambio de Servidor IIS en configuración y accesos directos.',
     'Rediseño ergonómico de barra lateral con número de versión destacado y botón de novedades.',
-    'Panel desplegable interactivo de notas de versión con cierre inteligente.',
-    'Sincronización universal de accesos directos para Windows 10 y Windows 11 sin degradar a Edge genérico.',
+    'Sincronización universal de accesos directos para Windows 10 y 11 sin degradar a Edge genérico.',
     'Purga automática de sesiones inactivas de Edge en terminales de planta.'
   ],
   planta: 'Planta Tlaxcala - Depto Wipes',

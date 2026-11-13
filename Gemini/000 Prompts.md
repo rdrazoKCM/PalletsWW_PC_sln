@@ -69,4 +69,8 @@ En AGENTS.md especificar que ante el comando 'publica los cambios' se publicará
 # 014 Publicación de Cambios e Incremento de Versión con Notas de Lanzamiento
 Publica los cambios y actualiza la versión (+1), registrando las notas y novedades de las mejoras realizadas en la aplicación.
 
+# 015 Integración de Nuevos Temas Visuales MD5 y Migración de Backend a .NET 10 LTS
+Integrar a la aplicación la suite completa de nuevos temas visuales creados en Pallets Pañal y actualizar la plataforma del backend Web API a .NET 10 LTS homologando el desempeño y estabilidad de ambas aplicaciones.
+
+
 

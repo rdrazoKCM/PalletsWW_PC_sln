@@ -153,12 +153,39 @@ export interface HardwarePrinterStatus {
 }
 
 export type ChromeTheme = 
+  // 4 Temas Oscuros (Default oficial, Profundo, Suave, y Carbón Máximo)
   | 'royal-navy' 
   | 'kcm-deep-blue' 
-  | 'kcm-cyan-pro' 
   | 'kcm-sapphire-plat' 
+  | 'negro-obsidiana'
+  // 3 Temas Blancos / Claros
+  | 'blanco-platino'
+  | 'gris-hielo'
+  | 'blanco-marfil'
+  // 8 Temáticos de Color
+  | 'kcm-cyan-pro' 
   | 'kcm-emerald' 
-  | 'kcm-amber-sunset';
+  | 'kcm-amber-sunset'
+  | 'rojo-carmin'
+  | 'purpura-amatista'
+  | 'verde-jade'
+  | 'naranja-cobre'
+  | 'magenta-fusion';
+
+export type ThemeCategory = 'oscuro' | 'blanco' | 'color';
+
+export interface AppThemeOption {
+  id: ChromeTheme;
+  orden: number;
+  categoria: ThemeCategory;
+  categoriaEtiqueta: string;
+  nivelEtiqueta: string;
+  nombre: string;
+  descripcion: string;
+  previewHeader: string;
+  previewCockpit: string;
+  previewAccent: string;
+}
 
 export interface ReporteConciliacionItemDto {
   idtblPallets: number;

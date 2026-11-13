@@ -11,7 +11,7 @@
 
 Migrar y modernizar el Frontend de la aplicación de **Pallets Wipes (Pallets WW)** desde su arquitectura actual en **Blazor Server** hacia una plataforma desacoplada de ultra alto desempeño en **React 19 SPA (Single Page Application)**, erradicando los retrasos provocados por la latencia de la red de planta:
 1. **Frontend Web SPA (`src/PalletsWW_PC.Web`):** React 19 + TypeScript + Vite + Tailwind CSS v4, ejecutándose directamente en la memoria del navegador de la PC cliente.
-2. **Backend API REST (`src/PalletsWW_PC.Api`):** ASP.NET Core Web API en C# (.NET 8 LTS) con micro-ORM Dapper y la librería oficial `Kcc.Infrastructure.Sql`, ejecutando Stored Procedures nativos en SQL Server.
+2. **Backend API REST (`src/PalletsWW_PC.Api`):** ASP.NET Core Web API en C# (.NET 10 LTS) con micro-ORM Dapper y la librería oficial `Kcc.Infrastructure.Sql`, ejecutando Stored Procedures nativos en SQL Server.
 3. **Inyección ZPL Ultra Rápida (< 120 ms):** Enviar el código ZPL devuelto por la API directamente desde React hacia el microservicio local Zebra (`http://127.0.0.1:9100/print`) en el milisegundo cero, sin intermediación de WebSockets en el servidor IIS.
 4. **Instalador de Terminales (`Setup_PalletsWW_Cliente.exe`):** Empaquetador multi-usuario con permisos ACL en `%ProgramData%` y ejecución en modo aplicación de Edge (`--app`).
 

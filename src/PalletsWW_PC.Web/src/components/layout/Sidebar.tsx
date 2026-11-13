@@ -459,7 +459,7 @@ export const Sidebar: React.FC = () => {
                 </div>
               </div>
               <div className="flex items-center gap-1.5 text-slate-400">
-                <span className="text-[10px] font-mono font-bold bg-white/10 px-1.5 py-0.5 rounded text-slate-300">6</span>
+                <span className="text-[10px] font-mono font-bold bg-white/10 px-1.5 py-0.5 rounded text-slate-300">{availableThemes.length}</span>
                 {showThemePicker ? <ChevronDown className="w-3.5 h-3.5 text-sky-400" /> : <ChevronUp className="w-3.5 h-3.5" />}
               </div>
             </button>
@@ -476,7 +476,7 @@ export const Sidebar: React.FC = () => {
                   <span className="text-[9.5px] font-mono text-slate-400">MD5</span>
                 </div>
 
-                <div className="space-y-1 max-h-56 overflow-y-auto pr-0.5">
+                <div className="space-y-1 max-h-72 overflow-y-auto pr-0.5">
                   {availableThemes.map(t => (
                     <button
                       key={t.id}

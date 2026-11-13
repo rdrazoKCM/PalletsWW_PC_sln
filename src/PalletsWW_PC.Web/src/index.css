@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 @theme {
   --color-kc-50: #E6F0FA;
@@ -71,7 +71,8 @@
   animation: rowPulseDanger 2.5s ease-out;
 }
 
-/* Theme Crome Classes */
+/* Theme Chrome Classes (15 Temas Homologados MD5 Kimberly-Clark) */
+/* 1. TEMAS OSCUROS */
 .theme-royal-navy {
   --chrome-bg: #0f172a;
   --chrome-header-bg: #1e293b;
@@ -79,6 +80,7 @@
   --chrome-accent: #3C93CB;
   --chrome-text: #f8fafc;
   --chrome-text-muted: #94a3b8;
+  --theme-body-bg: #f1f5f9;
 }
 
 .theme-kcm-deep-blue {
@@ -88,15 +90,7 @@
   --chrome-accent: #3C93CB;
   --chrome-text: #f0f7ff;
   --chrome-text-muted: #8ec5fc;
-}
-
-.theme-kcm-cyan-pro {
-  --chrome-bg: #082f49;
-  --chrome-header-bg: #0c4a6e;
-  --chrome-border: #0284c7;
-  --chrome-accent: #38bdf8;
-  --chrome-text: #f0fdfa;
-  --chrome-text-muted: #7dd3fc;
+  --theme-body-bg: #f1f5f9;
 }
 
 .theme-kcm-sapphire-plat {
@@ -106,6 +100,59 @@
   --chrome-accent: #60a5fa;
   --chrome-text: #ffffff;
   --chrome-text-muted: #cbd5e1;
+  --theme-body-bg: #f1f5f9;
+}
+
+.theme-negro-obsidiana {
+  --chrome-bg: #050508;
+  --chrome-header-bg: #0d0f14;
+  --chrome-border: #1e293b;
+  --chrome-accent: #10b981;
+  --chrome-text: #f8fafc;
+  --chrome-text-muted: #64748b;
+  --theme-body-bg: #090b10;
+}
+
+/* 2. TEMAS BLANCOS / CLAROS */
+.theme-blanco-platino {
+  --chrome-bg: #003366;
+  --chrome-header-bg: #0047ab;
+  --chrome-border: #38bdf8;
+  --chrome-accent: #38bdf8;
+  --chrome-text: #ffffff;
+  --chrome-text-muted: #bae6fd;
+  --theme-body-bg: #f8fafc;
+}
+
+.theme-gris-hielo {
+  --chrome-bg: #0f3868;
+  --chrome-header-bg: #1d4ed8;
+  --chrome-border: #60a5fa;
+  --chrome-accent: #38bdf8;
+  --chrome-text: #ffffff;
+  --chrome-text-muted: #bfdbfe;
+  --theme-body-bg: #f0f7ff;
+}
+
+.theme-blanco-marfil {
+  --chrome-bg: #1e2738;
+  --chrome-header-bg: #2c384e;
+  --chrome-border: #d97706;
+  --chrome-accent: #fbbf24;
+  --chrome-text: #ffffff;
+  --chrome-text-muted: #fed7aa;
+  --theme-body-bg: #faf8f2;
+}
+
+/* 3. TEMÁTICOS DE COLOR */
+.theme-kcm-cyan-pro {
+  --chrome-bg: #082f49;
+  --chrome-header-bg: #0c4a6e;
+  --chrome-border: #0284c7;
+  --chrome-accent: #38bdf8;
+  --chrome-text: #f0fdfa;
+  --chrome-text-muted: #7dd3fc;
+  --theme-body-bg: #f0fdfa;
 }
 
 .theme-kcm-emerald {
@@ -115,6 +162,7 @@
   --chrome-accent: #34d399;
   --chrome-text: #ecfdf5;
   --chrome-text-muted: #a7f3d0;
+  --theme-body-bg: #f0fdf4;
 }
 
 .theme-kcm-amber-sunset {
@@ -124,4 +172,55 @@
   --chrome-accent: #fbbf24;
   --chrome-text: #fffbeb;
   --chrome-text-muted: #fde68a;
+  --theme-body-bg: #fefce8;
+}
+
+.theme-rojo-carmin {
+  --chrome-bg: #4c0519;
+  --chrome-header-bg: #881337;
+  --chrome-border: #be123c;
+  --chrome-accent: #fb7185;
+  --chrome-text: #fff1f2;
+  --chrome-text-muted: #fecdd3;
+  --theme-body-bg: #fff1f2;
+}
+
+.theme-purpura-amatista {
+  --chrome-bg: #2e1065;
+  --chrome-header-bg: #3b0764;
+  --chrome-border: #6b21a8;
+  --chrome-accent: #c084fc;
+  --chrome-text: #faf5ff;
+  --chrome-text-muted: #e9d5ff;
+  --theme-body-bg: #faf5ff;
+}
+
+.theme-verde-jade {
+  --chrome-bg: #042f2e;
+  --chrome-header-bg: #0f766e;
+  --chrome-border: #14b8a6;
+  --chrome-accent: #2dd4bf;
+  --chrome-text: #f0fdfa;
+  --chrome-text-muted: #99f6e4;
+  --theme-body-bg: #f0fdf4;
+}
+
+.theme-naranja-cobre {
+  --chrome-bg: #431407;
+  --chrome-header-bg: #7c2d12;
+  --chrome-border: #c2410c;
+  --chrome-accent: #fb923c;
+  --chrome-text: #fff7ed;
+  --chrome-text-muted: #fed7aa;
+  --theme-body-bg: #fff7ed;
+}
+
+.theme-magenta-fusion {
+  --chrome-bg: #500724;
+  --chrome-header-bg: #831843;
+  --chrome-border: #be185d;
+  --chrome-accent: #f472b6;
+  --chrome-text: #fdf2f8;
+  --chrome-text-muted: #fbcfe8;
+  --theme-body-bg: #fdf2f8;
 }
