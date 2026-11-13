@@ -62,3 +62,7 @@ Publica los cambios, pero antes revisa que funcione correctamente y verifica que
 
 # 012 Revisión y Corrección de Cambio de Servidor IIS en el Instalador del Cliente
 Tengo una duda: ya hiciste las modificaciones necesarias para cambiar de servidor de IIS, pero yo tampoco podía cambiar de servidor de IIS incluso ejecutando otra vez el instalador (le colocaba la IP y no la agarraba). Revisa eso también y sé cuidadoso con lo que mueves, no quiero que se descomponga o ya no imprima.
+
+# 013 Reglas de Publicación en AGENTS.md y Visualización de Versión y Novedades en Barra Lateral
+En AGENTS.md especificar que ante el comando 'publica los cambios' se publicará Backend, Frontend y el instalador si tuvo cambios; y ante 'publica los cambios y actualiza version' se incrementará la versión en +1 en todos los campos de la app. En la barra lateral de la app, quitar de la parte inferior la máquina y el texto 'Modo Producción' para dar más espacio a mostrar el número de versión en grande con un botón desplegable para ver u ocultar los comentarios y mejoras de la versión.
+

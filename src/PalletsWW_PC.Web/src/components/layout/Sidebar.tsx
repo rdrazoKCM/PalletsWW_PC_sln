@@ -10,30 +10,45 @@ import {
   ChevronDown, 
   Palette, 
   CheckCircle2, 
-  HardDrive,
   Printer,
   CornerDownLeft,
   RotateCw,
   ClipboardCheck,
-  ShieldCheck,
-  UserCheck
+  UserCheck,
+  Info,
+  Sparkles,
+  X
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useProduction } from '../../context/ProductionContext';
 import { useTheme } from '../../context/ThemeContext';
-import { APP_CONFIG, getNombreMaquinaOficial } from '../../config';
+import { APP_CONFIG } from '../../config';
 import { impresionService } from '../../services/impresionService';
 
 export const Sidebar: React.FC = () => {
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const [showThemePicker, setShowThemePicker] = useState<boolean>(false);
+  const [showReleaseNotes, setShowReleaseNotes] = useState<boolean>(false);
   const [folioInput, setFolioInput] = useState<string>('');
   const [reprinting, setReprinting] = useState<boolean>(false);
   const inputFolioRef = useRef<HTMLInputElement>(null);
   const lastPrintTimeRef = useRef<number>(0);
+  const releaseNotesRef = useRef<HTMLDivElement>(null);
 
-  const { maquinaNombre, maquinaId, printerStatus, esGerencia } = useProduction();
+  const { printerStatus, esGerencia } = useProduction();
   const { theme, setTheme, availableThemes } = useTheme();
+
+  // Cerrar notas de la versión al hacer clic fuera del panel
+  useEffect(() => {
+    if (!showReleaseNotes) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (releaseNotesRef.current && !releaseNotesRef.current.contains(e.target as Node)) {
+        setShowReleaseNotes(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showReleaseNotes]);
 
   // Atajo de teclado global F9 para enfocar rápidamente la reimpresión por ID (solo en producción)
   useEffect(() => {
@@ -495,59 +510,146 @@ export const Sidebar: React.FC = () => {
         )}
       </div>
 
-      {/* Pie del Sidebar: Estado de Terminal */}
+      {/* Pie del Sidebar: Versión Destacada y Novedades */}
       <div 
-        className="p-3 border-t bg-black/15"
+        ref={releaseNotesRef}
+        className="p-3 border-t bg-black/15 relative"
         style={{ borderColor: 'var(--chrome-border, #334155)' }}
       >
-        {!isCollapsed ? (
-          esGerencia ? (
-            <div className="flex items-center gap-2.5">
-              <div className="relative">
-                <ShieldCheck className="w-5 h-5 text-purple-400" />
-                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-slate-900 bg-emerald-500" />
+        {/* Panel Desplegable de Novedades de la Versión */}
+        {showReleaseNotes && (
+          <div 
+            className={`
+              absolute bottom-[calc(100%+8px)] z-50 rounded-xl shadow-2xl border backdrop-blur-md transition-all duration-150 animate-in fade-in slide-in-from-bottom-2
+              ${isCollapsed ? 'left-2 w-72' : 'left-2 right-2'}
+            `}
+            style={{
+              backgroundColor: 'var(--chrome-card-bg, #1e293b)',
+              borderColor: 'var(--chrome-accent, #3b82f6)',
+              color: 'var(--chrome-text, #f8fafc)',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4)'
+            }}
+          >
+            {/* Cabecera del Panel */}
+            <div 
+              className="flex items-center justify-between p-3 border-b"
+              style={{ borderColor: 'var(--chrome-border, #334155)' }}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-6 h-6 rounded-lg bg-sky-500/20 border border-sky-400/30 flex items-center justify-center text-sky-400 shrink-0">
+                  <Sparkles className="w-3.5 h-3.5" />
+                </div>
+                <div className="truncate">
+                  <h4 className="text-xs font-black tracking-wide text-white truncate">
+                    {APP_CONFIG.versionNotesTitle || `Novedades ${APP_CONFIG.version}`}
+                  </h4>
+                  <p className="text-[10px] text-sky-300 font-mono">
+                    Build Oficial MD5 Kimberly-Clark
+                  </p>
+                </div>
               </div>
-              <div className="flex flex-col truncate">
-                <span className="text-xs font-semibold text-slate-200 truncate">
-                  Perfil Gerencial
-                </span>
-                <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
-                  <span>{APP_CONFIG.version}</span>
-                  <span>•</span>
-                  <span className="text-purple-300 font-bold">Modo Gerencia</span>
-                </span>
-              </div>
+              <button
+                onClick={() => setShowReleaseNotes(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                title="Cerrar"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
-          ) : (
-            <div className="flex items-center gap-2.5">
-              <div className="relative">
-                <HardDrive className="w-5 h-5 text-slate-400" />
+
+            {/* Lista de Novedades */}
+            <div className="p-3 max-h-60 overflow-y-auto space-y-2 text-xs">
+              {APP_CONFIG.versionReleaseNotes && APP_CONFIG.versionReleaseNotes.length > 0 ? (
+                APP_CONFIG.versionReleaseNotes.map((nota, idx) => (
+                  <div key={idx} className="flex items-start gap-2 text-slate-300 leading-snug">
+                    <span className="w-1.5 h-1.5 rounded-full bg-sky-400 mt-1.5 shrink-0 shadow-[0_0_6px_rgba(56,189,248,0.8)]" />
+                    <span className="text-[11px] select-text">{nota}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-[11px] text-slate-400 italic">No hay notas registradas para esta versión.</p>
+              )}
+            </div>
+
+            {/* Pie del Panel */}
+            <div 
+              className="px-3 py-2 border-t bg-black/20 flex items-center justify-between text-[10px] text-slate-400"
+              style={{ borderColor: 'var(--chrome-border, #334155)' }}
+            >
+              <span className="font-mono">{APP_CONFIG.appName}</span>
+              <span className="font-bold text-sky-400">{APP_CONFIG.version}</span>
+            </div>
+          </div>
+        )}
+
+        {!isCollapsed ? (
+          <div className="flex items-center justify-between gap-2">
+            {/* Versión en grande y destacada */}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div 
+                className="relative flex items-center justify-center shrink-0 cursor-pointer"
+                onClick={() => setShowReleaseNotes(!showReleaseNotes)}
+                title={printerStatus.conectada ? 'Zebra PrintBridge Conectado' : 'Zebra PrintBridge Desconectado'}
+              >
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-500/20 to-blue-600/30 border border-sky-400/30 flex items-center justify-center text-sky-400 shadow-sm hover:scale-105 transition-transform">
+                  <Info className="w-4 h-4" />
+                </div>
+                {/* Indicador discreto de estado de impresora */}
                 <span 
-                  className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-slate-900 ${printerStatus.conectada ? 'bg-emerald-500' : 'bg-red-500'}`} 
+                  className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-slate-900 ${printerStatus.conectada ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]'}`} 
+                  title={printerStatus.conectada ? 'Impresora Térmica En Línea' : 'Impresora Fuera de Línea'}
                 />
               </div>
-              <div className="flex flex-col truncate">
-                <span className="text-xs font-semibold text-slate-200 truncate">
-                  {getNombreMaquinaOficial(maquinaId, maquinaNombre)}
+
+              <button
+                onClick={() => setShowReleaseNotes(!showReleaseNotes)}
+                className="flex flex-col text-left group min-w-0"
+                title="Clic para desplegar las novedades de la versión"
+              >
+                <span className="text-sm font-black tracking-tight text-white group-hover:text-sky-300 transition-colors flex items-center gap-1.5 leading-none">
+                  {APP_CONFIG.version}
                 </span>
-                <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
-                  <span>{APP_CONFIG.version}</span>
-                  <span>•</span>
-                  <span className="text-emerald-400 font-bold">Modo Producción</span>
+                <span className="text-[10px] text-sky-400 font-semibold group-hover:underline mt-0.5 truncate">
+                  {showReleaseNotes ? 'Ocultar notas' : 'Ver novedades'}
                 </span>
-              </div>
+              </button>
             </div>
-          )
+
+            {/* Botón desplegar/ocultar comentarios de versión */}
+            <button
+              onClick={() => setShowReleaseNotes(!showReleaseNotes)}
+              className={`p-1.5 rounded-lg border transition-all duration-150 shrink-0 ${
+                showReleaseNotes 
+                  ? 'bg-sky-500 text-white border-sky-400 shadow-[0_0_10px_rgba(14,165,233,0.5)]' 
+                  : 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/10 hover:text-white'
+              }`}
+              title={showReleaseNotes ? 'Ocultar novedades de la versión' : 'Desplegar novedades de la versión'}
+              aria-label="Desplegar notas de versión"
+            >
+              {showReleaseNotes ? (
+                <ChevronDown className="w-4 h-4 transition-transform duration-200" />
+              ) : (
+                <ChevronUp className="w-4 h-4 transition-transform duration-200" />
+              )}
+            </button>
+          </div>
         ) : (
-          esGerencia ? (
-            <div className="flex justify-center" title="Perfil Gerencial Wet Wipes">
-              <span className="w-2.5 h-2.5 rounded-full bg-purple-400 ring-2 ring-purple-500/30" />
-            </div>
-          ) : (
-            <div className="flex justify-center" title={`${getNombreMaquinaOficial(maquinaId, maquinaNombre)} - ${APP_CONFIG.version}`}>
-              <span className={`w-2.5 h-2.5 rounded-full ${printerStatus.conectada ? 'bg-emerald-500' : 'bg-red-500'}`} />
-            </div>
-          )
+          /* Versión compacta cuando el sidebar está colapsado */
+          <div className="flex flex-col items-center gap-1">
+            <button
+              onClick={() => setShowReleaseNotes(!showReleaseNotes)}
+              className="relative p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 hover:border-sky-400/50 transition-all flex flex-col items-center justify-center group"
+              title={`${APP_CONFIG.version} - Clic para ver novedades`}
+            >
+              <span className="text-[11px] font-black text-sky-400 group-hover:text-sky-300">
+                {APP_CONFIG.version.replace(/Versión\s*/i, 'V')}
+              </span>
+              <span 
+                className={`w-2 h-2 rounded-full mt-1 ${printerStatus.conectada ? 'bg-emerald-500' : 'bg-red-500'}`} 
+                title={printerStatus.conectada ? 'Impresora Conectada' : 'Impresora Desconectada'}
+              />
+            </button>
+          </div>
         )}
       </div>
     </aside>

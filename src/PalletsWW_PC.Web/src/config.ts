@@ -128,6 +128,13 @@ export const getMaxTarimasPorMaquina = (_noMaquina?: number): number => {
 export const APP_CONFIG = {
   appName: 'Pallets Wipes PC',
   version: 'Versión 11',
+  versionNotesTitle: 'Novedades de la Versión 11',
+  versionReleaseNotes: [
+    'Solución del mapeo dinámico del servidor IIS en configuración.',
+    'Sincronización universal de accesos directos en Escritorio y Barra de Tareas.',
+    'Detección automática e insensible a mayúsculas/minúsculas en el instalador.',
+    'Purga automática de sesiones obsoletas de Edge en quiosco.'
+  ],
   planta: 'Planta Tlaxcala - Depto Wipes',
   
   // Backend API REST en puerto 5105 (IIS)

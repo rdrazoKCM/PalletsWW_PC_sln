@@ -22,7 +22,18 @@ Migrar y modernizar el Frontend de la aplicación de **Pallets Wipes (Pallets WW
 1. **Codificación:** Todo archivo creado o editado (`.md`, `.ts`, `.tsx`, `.cs`, `.css`, `.sql`, `.ps1`, `.iss`, `.json`) debe guardarse **estrictamente en UTF-8 con BOM** (`\uFEFF`).
 2. **Cero Suposiciones en Producción:** No modificar esquemas, tablas ni procedimientos almacenados en SQL Server sin análisis forense previo, validación y respaldo.
 3. **No Romper la Impresión Zebra:** La comunicación con impresoras térmicas es crítica. No alterar la inyección ZPL ni los parámetros de cabezal sin pruebas exhaustivas.
-4. **Política Estricta de Publicación (Solo por Instrucción Expresa):** No compilar a producción (`dotnet publish`, `C:\PublishIIS\...` ni instalador) en cambios menores. Se publica **ÚNICAMENTE** cuando el usuario lo solicite expresamente en el chat (ej. *"publica los cambios"*).
+4. **Política Estricta de Publicación y Versionamiento (Solo por Instrucción Expresa):**  
+   No compilar a producción (`dotnet publish`, `C:\PublishIIS\...` ni instalador) en cambios menores. Se publica **ÚNICAMENTE** ante comandos explícitos del usuario:  
+   * **Comando *"publica los cambios"*:**  
+     - Publicar Backend Web API (`src/PalletsWW_PC.Api` -> `C:\PublishIIS\PalletsWW_PC.Api.Publish`).  
+     - Publicar Frontend Web SPA (`src/PalletsWW_PC.Web` -> `C:\PublishIIS\PalletsWW_PC_React.Publish`).  
+     - Si hay cambios en el instalador del cliente o en PrintBridge (`PalletsWW_ClientSetup` o `PalletsPrintBridge`), compilar y publicar también el instalador (`Setup_PalletsWW_Cliente.exe`).  
+     - Ejecutar commit y push a GitHub (`master`).  
+   * **Comando *"publica los cambios y actualiza version"* (o similar):**  
+     - Incrementar en **+1** la versión en todos los campos donde se mencione la versión en la app (ej. `APP_CONFIG.version: 'Versión 11'` -> `'Versión 12'`, `V11` -> `V12`, `1.0.0` -> `1.0.1`, etc.).  
+     - Registrar los comentarios/novedades de la nueva versión en la configuración para que el botón de notas de versión los despliegue.  
+     - Compilar y desplegar Backend, Frontend y el instalador actualizado.  
+     - Ejecutar commit con la nueva versión y push a GitHub.
 
 ---
 
