@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Configuración centralizada de entorno y servicios para Pallets Wipes PC
  * Sigue el estándar corporativo MD5 Kimberly-Clark
  */

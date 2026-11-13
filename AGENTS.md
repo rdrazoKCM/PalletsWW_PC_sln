@@ -27,7 +27,7 @@ Migrar y modernizar el Frontend de la aplicación de **Pallets Wipes (Pallets WW
    * **Comando *"publica los cambios"*:**  
      - Publicar Backend Web API (`src/PalletsWW_PC.Api` -> `C:\PublishIIS\PalletsWW_PC.Api.Publish`).  
      - Publicar Frontend Web SPA (`src/PalletsWW_PC.Web` -> `C:\PublishIIS\PalletsWW_PC_React.Publish`).  
-     - Si hay cambios en el instalador del cliente o en PrintBridge (`PalletsWW_ClientSetup` o `PalletsPrintBridge`), compilar y publicar también el instalador (`Setup_PalletsWW_Cliente.exe`).  
+     - Si hay cambios en el instalador del cliente o en PrintBridge (`PalletsWW_ClientSetup` o `PalletsPrintBridge`), compilar y publicar también el instalador (`Setup_PalletsWW_Cliente.exe` en la raíz de `C:\PublishIIS\` y en la Web SPA).  
      - Ejecutar commit y push a GitHub (`master`).  
    * **Comando *"publica los cambios y actualiza version"* (o similar):**  
      - Incrementar en **+1** la versión en todos los campos donde se mencione la versión en la app (ej. `APP_CONFIG.version: 'Versión 11'` -> `'Versión 12'`, `V11` -> `V12`, `1.0.0` -> `1.0.1`, etc.).  

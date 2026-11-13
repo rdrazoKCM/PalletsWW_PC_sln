@@ -76,6 +76,11 @@ Integrar a la aplicación la suite completa de nuevos temas visuales creados en 
 Ajustar el selector de temas de la barra lateral para mostrar 10 temas visibles al desplegarse; verificar que no exista selector de temas duplicado en la cabecera; aumentar aún más el tamaño y visibilidad del número de versión en el pie de la barra lateral; verificar el correcto funcionamiento del instalador de terminales; incorporar en AGENTS.md la regla de documentación técnica consecutiva en archivos Gemini/116 X.md, 117 X.md; y publicar los cambios con incremento de versión (+1).
 *(Documentado en Gemini/116 Ajustes Ergonomicos de Temas Version y Bitacora Consecutiva.md)*
 
+# 017 Publicación del Instalador en la Raíz de PublishIIS
+Colocar la actualización del instalador Setup_PalletsWW_Cliente.exe directamente en la raíz de C:\PublishIIS\ para homologar su distribución con el resto de terminales de planta.
+*(Documentado en Gemini/117 Despliegue de Instalador en Raiz de PublishIIS.md)*
+
+
 
 
 

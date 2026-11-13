@@ -47,7 +47,11 @@ if ($BuildInstaller) {
     # Sincronizar en public de la Web App para descarga directa de operadores
     $publicExe = Join-Path $repoRoot "src\PalletsWW_PC.Web\public\Setup_PalletsWW_Cliente.exe"
     Copy-Item "$setupStaging\Setup_PalletsWW_Cliente.exe" $publicExe -Force
-    Write-Host "-> Instalador Setup_PalletsWW_Cliente.exe compilado y colocado en public/." -ForegroundColor Green
+    
+    # Sincronizar en la raíz de C:\PublishIIS
+    $rootInstaller = Join-Path $PublishRoot "Setup_PalletsWW_Cliente.exe"
+    Copy-Item "$setupStaging\Setup_PalletsWW_Cliente.exe" $rootInstaller -Force
+    Write-Host "-> Instalador Setup_PalletsWW_Cliente.exe colocado en public/ y en raíz de IIS ($rootInstaller)." -ForegroundColor Green
 }
 
 # ------------------------------------------------------------------------------
@@ -122,6 +126,7 @@ if (-not $SkipWeb) {
     # Sincronizar instalador si existe en dist
     if (Test-Path "$distDir\Setup_PalletsWW_Cliente.exe") {
         Copy-Item -Path "$distDir\Setup_PalletsWW_Cliente.exe" -Destination "$webPublishDir\Setup_PalletsWW_Cliente.exe" -Force
+        Copy-Item -Path "$distDir\Setup_PalletsWW_Cliente.exe" -Destination (Join-Path $PublishRoot "Setup_PalletsWW_Cliente.exe") -Force
     }
     Write-Host "-> Frontend Web React actualizado con exito (Cero caida de clientes)." -ForegroundColor Green
 }

@@ -1,4 +1,4 @@
-﻿# 116 Ajustes Ergonómicos de Temas, Visibilidad de Versión, Verificación de Instalador y Bitácora Consecutiva
+# 116 Ajustes Ergonómicos de Temas, Visibilidad de Versión, Verificación de Instalador y Bitácora Consecutiva
 
 > **Documento Oficial de Memoria Técnica y Control de Cambios**  
 > **Ubicación:** `C:\AI\Git Hub\clsA_P035_PallestWipes\PalletsWW_PC_sln\Gemini\116 Ajustes Ergonomicos de Temas Version y Bitacora Consecutiva.md`  
